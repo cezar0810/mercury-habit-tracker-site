@@ -2,9 +2,13 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Baixar Mercury Habit Tracker",
+  title: "Mercury Habit Tracker",
   description:
-    "Download oficial do Mercury Habit Tracker para Android. Organize hábitos, acompanhe sua evolução e mantenha o foco.",
+    "A versão web do Mercury Habit Tracker. Organize hábitos, acompanhe sua evolução e mantenha o foco.",
+  icons: {
+    icon: "/mercury-app-icon.png",
+    apple: "/mercury-app-icon.png",
+  },
 };
 
 export default function RootLayout({
