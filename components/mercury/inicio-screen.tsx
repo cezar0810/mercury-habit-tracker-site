@@ -1,12 +1,20 @@
 import {
   ArrowRight,
-  BarChart3,
   CheckCircle2,
   Clock3,
   Flame,
   Grid2X2,
   Trophy,
 } from "lucide-react";
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import {
   dateKey,
   greeting,
@@ -58,6 +66,10 @@ export function InicioScreen({
       .length;
     return Math.round((completed / habits.length) * 100);
   });
+  const weeklyChart = week.map((day, index) => ({
+    day: weekdayLabel(day).slice(0, 3),
+    rate: weeklyRates[index],
+  }));
 
   let streak = 0;
   for (let index = 0; index < 365; index += 1) {
@@ -175,24 +187,55 @@ export function InicioScreen({
         </div>
         <div className="rounded-[25px] border border-white/[0.1] bg-[#0c0d0e] p-5">
           {habits.length ? (
-            <div className="flex h-28 items-end justify-between gap-2">
-              {weeklyRates.map((rate, index) => (
-                <div
-                  className="flex flex-1 flex-col items-center gap-2"
-                  key={week[index]}
+            <div className="h-52 w-full" aria-label="Gráfico de conclusão dos hábitos nos últimos sete dias">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={weeklyChart}
+                  margin={{ top: 10, right: 8, bottom: 0, left: -20 }}
                 >
-                  <div
-                    className="w-full rounded-t-lg bg-[#347cf6]"
-                    style={{
-                      height: Math.max(4, rate) + "%",
-                      opacity: index === 6 ? 1 : 0.55,
-                    }}
+                  <CartesianGrid
+                    stroke="rgba(255,255,255,0.12)"
+                    strokeDasharray="3 3"
+                    vertical
                   />
-                  <span className="text-[10px] text-white/42">
-                    {weekdayLabel(week[index]).slice(0, 1).toUpperCase()}
-                  </span>
-                </div>
-              ))}
+                  <XAxis
+                    dataKey="day"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 11 }}
+                  />
+                  <YAxis
+                    domain={[0, 100]}
+                    ticks={[0, 25, 50, 75, 100]}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(value) => `${value}%`}
+                    tick={{ fill: "rgba(255,255,255,0.42)", fontSize: 10 }}
+                  />
+                  <Tooltip
+                    cursor={{ stroke: "rgba(255,255,255,0.18)" }}
+                    contentStyle={{
+                      background: "#111317",
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      borderRadius: 12,
+                      color: "white",
+                      fontSize: 12,
+                    }}
+                    labelStyle={{ color: "rgba(255,255,255,0.58)" }}
+                    formatter={(value) => [`${Number(value)}%`, "Concluídos"]}
+                  />
+                  <Line
+                    type="linear"
+                    dataKey="rate"
+                    stroke="#347cf6"
+                    strokeWidth={3}
+                    dot={{ r: 4, fill: "#347cf6", stroke: "#b9d1ff", strokeWidth: 1.5 }}
+                    activeDot={{ r: 6, fill: "#82b1ff", stroke: "#ffffff", strokeWidth: 2 }}
+                    isAnimationActive
+                    animationDuration={500}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
           ) : (
             <div className="py-7 text-center text-sm text-white/45">
