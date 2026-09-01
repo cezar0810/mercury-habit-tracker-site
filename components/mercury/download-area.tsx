@@ -1,8 +1,9 @@
 import { ChevronRight, Download, ShieldCheck } from "lucide-react";
 
-// Quando o APK atual estiver hospedado, cole o link entre as aspas.
-// Enquanto estiver vazio, o site mostra corretamente que o arquivo está em preparação.
-const APK_DOWNLOAD_URL = "";
+// Este endereço sempre aponta para o arquivo da Release mais recente no GitHub.
+// Para continuar funcionando, mantenha o nome do arquivo exatamente igual em cada Release.
+const APK_DOWNLOAD_URL =
+  "https://github.com/cezar0810/mercury-habit-tracker-site/releases/latest/download/Mercury-Habit-Tracker.apk";
 
 export function DownloadArea() {
   return (
@@ -25,7 +26,7 @@ export function DownloadArea() {
               Leve seus hábitos com você
             </h2>
             <p className="mt-2 text-[15px] leading-6 text-white/55">
-              O Mercury também está sendo preparado para Android, com
+              Baixe a versão mais recente do Mercury para Android, com
               notificações e funcionamento no celular.
             </p>
           </div>
@@ -41,26 +42,16 @@ export function DownloadArea() {
               </p>
             </div>
           </div>
-          {APK_DOWNLOAD_URL ? (
-            <a
-              href={APK_DOWNLOAD_URL}
-              className="mt-5 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#347cf6] px-4 text-center text-sm font-bold text-white shadow-[0_10px_24px_rgba(52,124,246,0.28)]"
-            >
-              <Download className="size-5" />
-              Baixar APK para Android
-            </a>
-          ) : (
-            <>
-              <div className="mt-5 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl border border-[#347cf6]/25 bg-[#347cf6]/10 px-4 text-center text-sm font-semibold text-[#82b1ff]">
-                <Download className="size-5" />
-                APK será liberado aqui
-              </div>
-              <p className="mt-3 text-center text-xs leading-5 text-white/42">
-                Quando o arquivo for publicado, este botão iniciará o download
-                seguro do APK.
-              </p>
-            </>
-          )}
+          <a
+            href={APK_DOWNLOAD_URL}
+            className="mt-5 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#347cf6] px-4 text-center text-sm font-bold text-white shadow-[0_10px_24px_rgba(52,124,246,0.28)]"
+          >
+            <Download className="size-5" />
+            Baixar APK para Android
+          </a>
+          <p className="mt-3 text-center text-xs leading-5 text-white/42">
+            O download começa diretamente pela Release mais recente.
+          </p>
         </div>
 
         <details className="group mt-5 rounded-[22px] border border-white/[0.09] bg-white/[0.025] p-5">

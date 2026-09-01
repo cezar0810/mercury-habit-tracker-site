@@ -379,45 +379,48 @@ export function MercuryWebApp() {
           </div>
         </header>
 
-        <div className="mt-5 grid gap-5 lg:grid-cols-[235px_minmax(0,1fr)]">
+        <div className="mt-5 grid gap-5 lg:grid-cols-[332px_minmax(0,1fr)]">
           <aside className="hidden lg:block">
-            <nav className="sticky top-6 rounded-[24px] border border-white/[0.1] bg-[#0b0c0d] p-3">
-              <p className="px-3 pb-2 pt-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white/35">
-                Seu espaço
-              </p>
-              <div className="space-y-1">
-                {tabs.map((item) => {
-                  const Icon = item.icon;
-                  const active = item.id === tab;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => setTab(item.id)}
-                      className={
-                        "flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-semibold transition " +
-                        (active
-                          ? "bg-[#112b58] text-[#4b8cff]"
-                          : "text-white/58 hover:bg-white/[0.05] hover:text-white")
-                      }
-                    >
-                      <Icon className="size-5" />
-                      {item.label}
-                    </button>
-                  );
-                })}
-              </div>
-              {!profileComplete && (
-                <button
-                  type="button"
-                  onClick={openSettings}
-                  className="mt-4 flex w-full items-start gap-2 rounded-xl border border-red-400/20 bg-red-500/[0.08] p-3 text-left text-xs leading-5 text-red-100/85"
-                >
-                  <span className="mt-1 size-2 shrink-0 rounded-full bg-red-500" />
-                  Complete as informações do perfil.
-                </button>
-              )}
-            </nav>
+            <div className="sticky top-6 space-y-4">
+              <nav className="rounded-[24px] border border-white/[0.1] bg-[#0b0c0d] p-3">
+                <p className="px-3 pb-2 pt-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white/35">
+                  Seu espaço
+                </p>
+                <div className="space-y-1">
+                  {tabs.map((item) => {
+                    const Icon = item.icon;
+                    const active = item.id === tab;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setTab(item.id)}
+                        className={
+                          "flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-semibold transition " +
+                          (active
+                            ? "bg-[#112b58] text-[#4b8cff]"
+                            : "text-white/58 hover:bg-white/[0.05] hover:text-white")
+                        }
+                      >
+                        <Icon className="size-5" />
+                        {item.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {!profileComplete && (
+                  <button
+                    type="button"
+                    onClick={openSettings}
+                    className="mt-4 flex w-full items-start gap-2 rounded-xl border border-red-400/20 bg-red-500/[0.08] p-3 text-left text-xs leading-5 text-red-100/85"
+                  >
+                    <span className="mt-1 size-2 shrink-0 rounded-full bg-red-500" />
+                    Complete as informações do perfil.
+                  </button>
+                )}
+              </nav>
+              <AdsterraBanner />
+            </div>
           </aside>
 
           <section className="min-w-0 rounded-[28px] border border-white/[0.1] bg-[#050607]/90 shadow-[0_20px_70px_rgba(0,0,0,0.24)]">
