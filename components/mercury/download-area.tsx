@@ -1,9 +1,5 @@
 import { ChevronRight, Download, ShieldCheck } from "lucide-react";
-
-// Este endereço sempre aponta para o arquivo da Release mais recente no GitHub.
-// Para continuar funcionando, mantenha o nome do arquivo exatamente igual em cada Release.
-const APK_DOWNLOAD_URL =
-  "https://github.com/cezar0810/mercury-habit-tracker-site/releases/latest/download/Mercury-Habit-Tracker.apk";
+import { appRelease } from "@/lib/app-release";
 
 export function DownloadArea() {
   return (
@@ -38,12 +34,12 @@ export function DownloadArea() {
             <div>
               <p className="font-semibold">Download oficial</p>
               <p className="text-xs text-white/45">
-                Versão 1.0.0 · Android 6 ou superior
+                Versão {appRelease.version_name} · APK para Android
               </p>
             </div>
           </div>
           <a
-            href={APK_DOWNLOAD_URL}
+            href={appRelease.download_url}
             className="mt-5 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#347cf6] px-4 text-center text-sm font-bold text-white shadow-[0_10px_24px_rgba(52,124,246,0.28)]"
           >
             <Download className="size-5" />
@@ -52,6 +48,9 @@ export function DownloadArea() {
           <p className="mt-3 text-center text-xs leading-5 text-white/42">
             O download começa diretamente pela Release mais recente.
           </p>
+          <a href="/atualizacao" className="mt-4 flex min-h-11 items-center justify-center rounded-lg text-sm text-[#74a7ff] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#74a7ff]">
+            Já tenho o app — como atualizar
+          </a>
         </div>
 
         <details className="group mt-5 rounded-[22px] border border-white/[0.09] bg-white/[0.025] p-5">
