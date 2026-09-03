@@ -1,5 +1,6 @@
-import { ChevronRight, Download, ShieldCheck } from "lucide-react";
+import { ChevronRight, ShieldCheck } from "lucide-react";
 import { appRelease } from "@/lib/app-release";
+import { ApkDownload } from "@/components/mercury/apk-download";
 
 export function DownloadArea() {
   return (
@@ -38,13 +39,7 @@ export function DownloadArea() {
               </p>
             </div>
           </div>
-          <a
-            href={appRelease.download_url}
-            className="mt-5 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#347cf6] px-4 text-center text-sm font-bold text-white shadow-[0_10px_24px_rgba(52,124,246,0.28)]"
-          >
-            <Download className="size-5" />
-            Baixar APK para Android
-          </a>
+          <ApkDownload label="Baixar APK para Android" className="mt-5" />
           <p className="mt-3 text-center text-xs leading-5 text-white/42">
             O download começa diretamente pela Release mais recente.
           </p>

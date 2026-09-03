@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { ArrowLeft, Download, RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ArrowLeft, RefreshCw } from "lucide-react";
+import { ApkDownload } from "@/components/mercury/apk-download";
 import { appRelease } from "@/lib/app-release";
 
 export const metadata: Metadata = {
@@ -37,11 +37,7 @@ export default function UpdatePage() {
             <p className="mt-1 text-3xl font-bold tracking-tight">{appRelease.version_name}</p>
             <p className="mt-1 text-sm text-white/55">Android · Versão interna {appRelease.version_code}</p>
             <p className="mt-5 border-t border-white/10 pt-5 text-base leading-7 text-white/75">{appRelease.message}</p>
-            <Button asChild className="mt-6 h-auto min-h-14 w-full whitespace-normal rounded-2xl bg-[#347cf6] px-5 py-4 text-base font-bold text-white hover:bg-[#2466d7] focus-visible:ring-[#74a7ff]">
-              <a href={appRelease.download_url}>
-                <Download aria-hidden="true" className="size-5" /> Baixar atualização
-              </a>
-            </Button>
+            <ApkDownload label="Baixar atualização" className="mt-6" />
             <p className="mt-4 text-sm leading-6 text-white/60">
               É o mesmo APK do download principal do site. O arquivo é hospedado no GitHub Releases.
             </p>

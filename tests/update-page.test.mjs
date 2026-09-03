@@ -20,6 +20,9 @@ test("página de atualização usa a versão e o APK do manifesto", async () => 
   assert.equal(new URL(manifest.update_page_url).pathname, "/atualizacao");
 
   const downloadArea = await readFile(new URL("../components/mercury/download-area.tsx", import.meta.url), "utf8");
-  assert.ok(downloadArea.includes("href={appRelease.download_url}"));
+  assert.ok(downloadArea.includes("<ApkDownload"));
+  const apkDownload = await readFile(new URL("../components/mercury/apk-download.tsx", import.meta.url), "utf8");
+  assert.ok(apkDownload.includes("href={appRelease.download_url}"));
+  assert.ok(html.includes("Consultando tamanho do APK"));
   assert.ok(downloadArea.includes("appRelease.version_name"));
 });
