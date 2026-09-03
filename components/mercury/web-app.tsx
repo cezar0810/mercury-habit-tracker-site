@@ -25,7 +25,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { BottomNavigation } from "./controls";
-import { AdsterraBanner } from "./adsterra-banner";
+import { AdsterraContentAd, AdsterraSidebarAd } from "./adsterra-banner";
 import { DownloadArea } from "./download-area";
 import { FocusScreen } from "./focus-screen";
 import { HabitsScreen } from "./habits-screen";
@@ -419,16 +419,18 @@ export function MercuryWebApp() {
                   </button>
                 )}
               </nav>
-              <AdsterraBanner />
+              {hydrated && data.name.trim() && <AdsterraSidebarAd />}
             </div>
           </aside>
 
           <section className="min-w-0 rounded-[28px] border border-white/[0.1] bg-[#050607]/90 shadow-[0_20px_70px_rgba(0,0,0,0.24)]">
             <div className="px-5 py-7 sm:px-8 sm:py-9">
               {screen}
-              <div className="mt-8 border-t border-white/[0.07] pt-7">
-                <AdsterraBanner />
-              </div>
+              {hydrated && data.name.trim() && (
+                <div className="mt-8 border-t border-white/[0.07] pt-7">
+                  <AdsterraContentAd />
+                </div>
+              )}
             </div>
             <div className="border-t border-white/[0.06] lg:hidden">
               <BottomNavigation tab={tab} onChange={setTab} />
