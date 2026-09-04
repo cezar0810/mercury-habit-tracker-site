@@ -29,26 +29,23 @@ const ads = await loadSource("../components/mercury/adsterra-banner.tsx", {
   "./adsterra-config": config,
 });
 
-test("preserva o 300x250 e usa os códigos exatos das capturas", () => {
-  const { sidebar, leaderboard, app } = config.bannerUnits;
+test("preserva o lateral e o app, e usa o novo 468x60 no conteúdo", () => {
+  const { sidebar, content, app } = config.bannerUnits;
   assert.equal(sidebar.key, "9f638f6846aefc97bc991b4d39110738");
   assert.equal(sidebar.scriptUrl, "https://www.highperformanceformat.com/9f638f6846aefc97bc991b4d39110738/invoke.js");
-  assert.equal(leaderboard.scriptUrl, "https://www.highrevenueformat.com/5aec9e5a23fec0603deeddcac95f3069/invoke.js");
+  assert.equal(content.key, "630d2e92a8d18337fae21876b6d1cb20");
+  assert.equal(content.width, 468);
+  assert.equal(content.height, 60);
+  assert.equal(content.scriptUrl, "https://www.highrevenueformat.com/630d2e92a8d18337fae21876b6d1cb20/invoke.js");
   assert.equal(app.scriptUrl, "https://www.highrevenueformat.com/e3e738f5e05faf47328d4aef05b5da4f/invoke.js");
-  assert.equal(config.nativeUnit.containerId, "container-52e866d544fa95f5ea6617eb9aaf1c28");
-  assert.equal(config.nativeUnit.scriptUrl, "https://pl31157743.profitableratecpmnetwork.com/52e866d544fa95f5ea6617eb9aaf1c28/invoke.js");
   assert.equal(new Set(Object.values(config.bannerUnits).map(unit => unit.key)).size, 3);
 });
 
-for (const [width, viewport, expected] of [
-  [0, 1366, null], [728, 0, null],
-  [246, 320, "native"], [301, 375, "native"], [356, 430, "native"],
-  [688, 768, "native"], [900, 1000, "native"],
-  [544, 1024, "native"], [727, 1366, "native"],
-  [728, 1366, "leaderboard"], [800, 1920, "leaderboard"],
+for (const [width, expected] of [
+  [0, false], [320, false], [467, false], [468, true], [900, true],
 ]) {
-  test(`seleciona ${expected} com ${width}px disponíveis e tela de ${viewport}px`, () => {
-    assert.equal(config.contentAdFormat(width, viewport), expected);
+  test(`banner de conteúdo ${expected ? "cabe" : "não cabe"} em ${width}px`, () => {
+    assert.equal(config.contentAdFits(width), expected);
   });
 }
 

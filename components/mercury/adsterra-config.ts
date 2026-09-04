@@ -8,11 +8,11 @@ export const bannerUnits = {
     // Preserva o endereço da unidade que já funcionava na lateral.
     scriptUrl: "https://www.highperformanceformat.com/9f638f6846aefc97bc991b4d39110738/invoke.js",
   },
-  leaderboard: {
-    key: "5aec9e5a23fec0603deeddcac95f3069",
-    width: 728,
-    height: 90,
-    scriptUrl: "https://www.highrevenueformat.com/5aec9e5a23fec0603deeddcac95f3069/invoke.js",
+  content: {
+    key: "630d2e92a8d18337fae21876b6d1cb20",
+    width: 468,
+    height: 60,
+    scriptUrl: "https://www.highrevenueformat.com/630d2e92a8d18337fae21876b6d1cb20/invoke.js",
   },
   app: {
     key: "e3e738f5e05faf47328d4aef05b5da4f",
@@ -22,17 +22,11 @@ export const bannerUnits = {
   },
 } as const;
 
-export const nativeUnit = {
-  containerId: "container-52e866d544fa95f5ea6617eb9aaf1c28",
-  scriptUrl: "https://pl31157743.profitableratecpmnetwork.com/52e866d544fa95f5ea6617eb9aaf1c28/invoke.js",
-} as const;
-
 export type BannerPlacement = keyof typeof bannerUnits;
 
-export function contentAdFormat(availableWidth: number, viewportWidth: number) {
-  if (availableWidth <= 0 || viewportWidth <= 0) return null;
-  // Janelas estreitas de desktop também não devem comprimir o banner de 728px.
-  return viewportWidth >= 1024 && availableWidth >= 728 ? "leaderboard" : "native";
+export function contentAdFits(availableWidth: number) {
+  // A unidade é fixa em 468 px e não deve ser comprimida ou cortada.
+  return availableWidth >= bannerUnits.content.width;
 }
 
 export function sidebarAdFits(availableWidth: number, viewportWidth: number) {

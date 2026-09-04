@@ -4,8 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   bannerDocument,
   bannerUnits,
-  contentAdFormat,
-  nativeUnit,
+  contentAdFits,
   sidebarAdFits,
   type BannerPlacement,
 } from "./adsterra-config";
@@ -72,48 +71,13 @@ export function AdsterraSidebarAd() {
   );
 }
 
-function AdsterraNativeAd() {
-  const slot = useRef<HTMLDivElement>(null);
-  const [failed, setFailed] = useState(false);
-  useEffect(() => {
-    const element = slot.current;
-    if (!element) return;
-    // O recipiente existe antes de iniciar o script assíncrono fornecido.
-    const container = document.createElement("div");
-    container.id = nativeUnit.containerId;
-    const script = document.createElement("script");
-    script.async = true;
-    script.setAttribute("data-cfasync", "false");
-    script.src = nativeUnit.scriptUrl;
-    script.onerror = () => setFailed(true);
-    // O primeiro ciclo de verificação do Strict Mode é cancelado antes de
-    // carregar a rede, evitando duas requisições em desenvolvimento.
-    const mount = requestAnimationFrame(() => {
-      element.replaceChildren(container, script);
-    });
-    return () => {
-      cancelAnimationFrame(mount);
-      script.onerror = null;
-      element.replaceChildren();
-    };
-  }, []);
-  return (
-    <>
-      <div ref={slot} data-ad-placement="native" className="min-h-[100px] w-full min-w-0" />
-      {failed && <p role="status" className="text-center text-xs text-white/40">Publicidade indisponível no momento.</p>}
-    </>
-  );
-}
-
 export function AdsterraContentAd() {
-  const { ref, width, viewportWidth } = useSlotSize();
-  const format = contentAdFormat(width, viewportWidth);
+  const { ref, width } = useSlotSize();
   return (
     <aside aria-label="Publicidade abaixo do conteúdo" className="w-full min-w-0">
       <AdLabel />
       <div ref={ref} className="min-w-0">
-        {format === "leaderboard" && <AdsterraBannerFrame placement="leaderboard" />}
-        {format === "native" && <AdsterraNativeAd />}
+        {contentAdFits(width) && <AdsterraBannerFrame placement="content" />}
       </div>
     </aside>
   );

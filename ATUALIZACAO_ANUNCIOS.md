@@ -5,19 +5,14 @@
 | Local | Unidade |
 | --- | --- |
 | Abaixo de “Seu espaço”, no computador | 300×250 existente |
-| Abaixo do conteúdo, quando cabem 728 px | 728×90 |
-| Abaixo do conteúdo, no celular ou em janela estreita | Banner nativo |
+| Abaixo do conteúdo, quando cabem 468 px | 468×60 |
+| Abaixo do conteúdo, em telas com menos de 468 px livres | Não é carregado |
 | `/anuncio`, para integração posterior no Android | 320×50 |
 
-O site mede o espaço disponível; não carrega banners grandes escondidos no
+O site mede o espaço disponível; não carrega banners que seriam cortados no
 celular. Não há Smartlink nem atualização automática dos anúncios. O 320×50
-não aparece junto do nativo no habit tracker. Os anúncios retangulares têm
+não aparece junto do 468×60 no habit tracker. Os anúncios retangulares têm
 documentos separados para evitar interferência entre os códigos `atOptions`.
-
-O layout interno do nativo vem do painel Adsterra. A captura enviada mostra
-`4:1`. Se os quatro cartões ficarem apertados no celular, altere o layout do
-widget no painel para uma coluna (`1:1`, se disponível) e salve. Não é preciso
-trocar a chave do anúncio para alterar o layout no painel.
 
 ## Aplicar no site existente
 
@@ -50,7 +45,7 @@ antes de continuar; não use `--force`. A atualização só entra no endereço
 
 Esta atualização não altera seu botão de download. O projeto mantém o endereço
 direto via GitHub Releases já configurado na entrega anterior:
-`https://github.com/cezar0810/mercury-habit-tracker-site/releases/latest/download/Mercury-Habit-Tracker.apk`.
+`https://github.com/cezar0810/mercury-downloads/releases/latest/download/Mercury-Habit-Tracker.apk`.
 O arquivo precisa existir com esse nome no release publicado mais recente.
 
 ## Página para o WebView
@@ -72,9 +67,8 @@ distribuir essa integração. Não foi confirmada aqui a aprovação desse uso.
 
 ## Verificação
 
-- No computador com espaço suficiente: um 300×250 lateral e um 728×90 abaixo.
-- No celular: somente o nativo dentro do tracker, sem rolagem horizontal causada
-  por um anúncio de 728 px.
+- No computador com espaço suficiente: um 300×250 lateral e um 468×60 abaixo.
+- Em telas estreitas: o 468×60 não é carregado e não causa rolagem horizontal.
 - Em `/anuncio`: somente o espaço do 320×50 com o rótulo.
 - Nome, hábitos, planejamento, foco e download devem continuar funcionando.
 - Bloqueadores, indisponibilidade de campanhas e regras da rede podem impedir
