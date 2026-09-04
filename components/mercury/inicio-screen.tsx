@@ -1,9 +1,11 @@
+"use client";
+
 import {
   ArrowRight,
   CheckCircle2,
   Clock3,
+  Droplets,
   Flame,
-  Grid2X2,
   Trophy,
 } from "lucide-react";
 import {
@@ -19,9 +21,12 @@ import {
   dateKey,
   greeting,
   shiftDate,
+  waterTotalForDay,
   weekdayLabel,
   type Habit,
+  type WaterEntry,
 } from "./state";
+import { WeatherCard } from "./weather-card";
 
 export function InicioScreen({
   name,
@@ -31,6 +36,8 @@ export function InicioScreen({
   habits,
   completions,
   focusMinutesByDay,
+  waterGoalMl,
+  waterEntriesByDay,
   onHabits,
 }: {
   name: string;
@@ -40,6 +47,8 @@ export function InicioScreen({
   habits: Habit[];
   completions: Record<string, Record<string, boolean>>;
   focusMinutesByDay: Record<string, number>;
+  waterGoalMl: number;
+  waterEntriesByDay: Record<string, WaterEntry[]>;
   onHabits: () => void;
 }) {
   const today = dateKey(new Date());
@@ -57,6 +66,11 @@ export function InicioScreen({
   const level = Math.floor(xp / 125) + 1;
   const currentLevelXp = xp % 125;
   const focusToday = focusMinutesByDay[today] || 0;
+  const waterToday = waterTotalForDay({ waterEntriesByDay }, today);
+  const waterProgress = Math.min(
+    100,
+    Math.round((waterToday / Math.max(1, waterGoalMl)) * 100),
+  );
   const week = Array.from({ length: 7 }, (_, index) =>
     shiftDate(today, index - 6),
   );
@@ -83,13 +97,19 @@ export function InicioScreen({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-[31px] font-bold tracking-[-0.045em]">
-          {greeting()}, {name}
-        </h1>
-        <p className="mt-1 text-[16px] text-white/55">
-          Um passo de cada vez.
-        </p>
+      <div className="grid items-stretch gap-4 md:grid-cols-[minmax(0,1fr)_330px]">
+        <div className="flex min-h-[154px] flex-col justify-center rounded-[25px] border border-white/[0.08] bg-[linear-gradient(135deg,rgba(52,124,246,0.12),rgba(12,13,14,0.8))] p-5">
+          <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[#82b1ff]">
+            Hoje é um novo começo
+          </p>
+          <h1 className="mt-2 text-[31px] font-bold tracking-[-0.045em] sm:text-[36px]">
+            {greeting()}, {name}
+          </h1>
+          <p className="mt-1 text-[16px] text-white/55">
+            Um passo de cada vez.
+          </p>
+        </div>
+        <WeatherCard />
       </div>
 
       <section className="rounded-[27px] border border-white/[0.12] bg-[#0c0d0e] p-5">
@@ -130,34 +150,74 @@ export function InicioScreen({
         </div>
       )}
 
-      <section className="rounded-[27px] border border-white/[0.12] bg-[#0c0d0e] p-5">
-        <div className="flex items-center gap-5">
-          <div
-            className="relative grid size-[124px] place-items-center rounded-full before:absolute before:size-[102px] before:rounded-full before:bg-[#0c0d0e]"
-            style={{
-              background:
-                "conic-gradient(#347cf6 " +
-                progress * 3.6 +
-                "deg, rgba(255,255,255,0.12) 0deg)",
-            }}
-          >
-            <div className="relative text-center">
-              <p className="text-[31px] font-bold tracking-[-0.04em]">
-                {progress}%
+      <div className="grid gap-4 xl:grid-cols-2">
+        <section className="rounded-[27px] border border-white/[0.12] bg-[#0c0d0e] p-5">
+          <div className="flex items-center gap-5">
+            <div
+              className="relative grid size-[124px] shrink-0 place-items-center rounded-full before:absolute before:size-[102px] before:rounded-full before:bg-[#0c0d0e]"
+              style={{
+                background:
+                  "conic-gradient(#347cf6 " +
+                  progress * 3.6 +
+                  "deg, rgba(255,255,255,0.12) 0deg)",
+              }}
+            >
+              <div className="relative text-center">
+                <p className="text-[31px] font-bold tracking-[-0.04em]">
+                  {progress}%
+                </p>
+                <p className="text-sm text-white/55">hoje</p>
+              </div>
+            </div>
+            <div>
+              <h2 className="text-[23px] font-bold">Seus hábitos</h2>
+              <p className="mt-2 text-[15px] leading-6 text-white/55">
+                {habits.length
+                  ? todayCompleted + " de " + habits.length + " hábitos concluídos."
+                  : "Crie hábitos para acompanhar seu progresso."}
               </p>
-              <p className="text-sm text-white/55">hoje</p>
             </div>
           </div>
-          <div>
-            <h2 className="text-[23px] font-bold">Seu progresso</h2>
-            <p className="mt-2 text-[15px] leading-6 text-white/55">
-              {habits.length
-                ? todayCompleted + " de " + habits.length + " hábitos concluídos."
-                : "Crie hábitos para acompanhar seu progresso."}
-            </p>
+        </section>
+
+        <a
+          href="/water"
+          className="group rounded-[27px] border border-sky-300/15 bg-[linear-gradient(135deg,rgba(14,116,180,0.2),#0c0d0e_70%)] p-5 transition hover:border-sky-300/30"
+          aria-label="Abrir controle de água"
+        >
+          <div className="flex items-center gap-5">
+            <div
+              className="relative grid size-[124px] shrink-0 place-items-center rounded-full before:absolute before:size-[102px] before:rounded-full before:bg-[#0c0d0e]"
+              style={{
+                background:
+                  "conic-gradient(#38bdf8 " +
+                  waterProgress * 3.6 +
+                  "deg, rgba(255,255,255,0.12) 0deg)",
+              }}
+            >
+              <div className="relative text-center">
+                <p className="text-[29px] font-bold tracking-[-0.04em]">
+                  {waterProgress}%
+                </p>
+                <Droplets className="mx-auto mt-0.5 size-4 text-sky-300" />
+              </div>
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-sky-300">Água hoje</p>
+              <h2 className="mt-1 text-[23px] font-bold">
+                {waterToday.toLocaleString("pt-BR")} ml
+              </h2>
+              <p className="mt-1 text-[14px] leading-5 text-white/50">
+                Meta de {waterGoalMl.toLocaleString("pt-BR")} ml
+              </p>
+              <span className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-sky-300">
+                Registrar água
+                <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
+              </span>
+            </div>
           </div>
-        </div>
-      </section>
+        </a>
+      </div>
 
       <div className="grid grid-cols-2 gap-4">
         <section className="rounded-[25px] border border-white/[0.12] bg-[#0c0d0e] p-5">
@@ -259,7 +319,9 @@ export function InicioScreen({
                 key={habit.id}
                 className="flex w-full items-center gap-3 rounded-2xl border border-white/[0.1] bg-[#0c0d0e] p-4 text-left transition hover:border-[#347cf6]/45"
               >
-                <Grid2X2 className="size-5 text-[#347cf6]" />
+                <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-white/[0.05] text-base" aria-hidden="true">
+                  {habit.emoji}
+                </span>
                 <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">
                   {habit.title}
                 </span>

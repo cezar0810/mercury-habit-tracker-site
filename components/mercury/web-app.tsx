@@ -2,6 +2,8 @@
 
 import {
   Download,
+  Droplets,
+  Dumbbell,
   Settings,
   Trash2,
   UserRound,
@@ -35,40 +37,21 @@ import {
   blankMercuryData,
   createId,
   dateKey,
+  habitEmoji,
   profileIsComplete,
   type MercuryData,
   type PlannerPeriod,
 } from "./state";
 import { tabs, type Tab } from "./data";
-
-const STORAGE_KEY = "mercury-habit-tracker-web-v1";
+import {
+  MERCURY_STORAGE_KEY,
+  readMercuryData,
+  writeMercuryData,
+} from "./mercury-storage";
 
 type DeleteRequest =
   | { type: "habit"; id: string; title: string }
   | { type: "task"; id: string; title: string };
-
-function cleanStoredData(value: unknown): MercuryData {
-  if (!value || typeof value !== "object") return { ...blankMercuryData };
-  const saved = value as Partial<MercuryData>;
-  return {
-    name: typeof saved.name === "string" ? saved.name : "",
-    goal: typeof saved.goal === "string" ? saved.goal : "",
-    gender: typeof saved.gender === "string" ? saved.gender : "",
-    characterClass:
-      typeof saved.characterClass === "string" ? saved.characterClass : "",
-    habits: Array.isArray(saved.habits) ? saved.habits : [],
-    completions:
-      saved.completions && typeof saved.completions === "object"
-        ? saved.completions
-        : {},
-    plannerTasks: Array.isArray(saved.plannerTasks) ? saved.plannerTasks : [],
-    focusMinutesByDay:
-      saved.focusMinutesByDay &&
-      typeof saved.focusMinutesByDay === "object"
-        ? saved.focusMinutesByDay
-        : {},
-  };
-}
 
 export function MercuryWebApp() {
   const [tab, setTab] = useState<Tab>("habitos");
@@ -88,19 +71,18 @@ export function MercuryWebApp() {
   );
 
   useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem(STORAGE_KEY);
-      if (saved) setData(cleanStoredData(JSON.parse(saved)));
-    } catch {
-      window.localStorage.removeItem(STORAGE_KEY);
-    } finally {
-      setHydrated(true);
-    }
+    setData(readMercuryData());
+    setHydrated(true);
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === MERCURY_STORAGE_KEY) setData(readMercuryData());
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
   useEffect(() => {
     if (hydrated) {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      writeMercuryData(data);
     }
   }, [data, hydrated]);
 
@@ -135,12 +117,17 @@ export function MercuryWebApp() {
 
   const addHabit = (title: string) => {
     const nextTitle = title.trim();
-    if (!nextTitle || data.habits.length >= 15) return false;
+    const manualHabitCount = data.habits.filter((habit) => habit.source !== "workout").length;
+    if (!nextTitle || manualHabitCount >= 15) return false;
     setData((current) => ({
       ...current,
       habits: [
         ...current.habits,
-        { id: createId("habit"), title: nextTitle.slice(0, 45) },
+        {
+          id: createId("habit"),
+          title: nextTitle.slice(0, 45),
+          emoji: habitEmoji(nextTitle),
+        },
       ],
     }));
     return true;
@@ -150,13 +137,17 @@ export function MercuryWebApp() {
     setData((current) => ({
       ...current,
       habits: current.habits.map((habit) =>
-        habit.id === id ? { ...habit, title: title.slice(0, 45) } : habit,
+        habit.id === id && habit.source !== "workout"
+          ? { ...habit, title: title.slice(0, 45), emoji: habitEmoji(title) }
+          : habit,
       ),
     }));
   };
 
   const deleteHabit = (id: string) => {
     setData((current) => {
+      const habit = current.habits.find((item) => item.id === id);
+      if (habit?.source === "workout") return current;
       const nextCompletions: MercuryData["completions"] = {};
       Object.entries(current.completions).forEach(([day, values]) => {
         const { [id]: removed, ...remaining } = values;
@@ -280,6 +271,7 @@ export function MercuryWebApp() {
       viewMonth={viewMonth}
       onMonthChange={setViewMonth}
       onAddHabit={addHabit}
+      manualHabitCount={data.habits.filter((habit) => habit.source !== "workout").length}
       onRenameHabit={renameHabit}
       onDeleteHabit={(id) => {
         const habit = data.habits.find((item) => item.id === id);
@@ -300,6 +292,8 @@ export function MercuryWebApp() {
         habits={data.habits}
         completions={data.completions}
         focusMinutesByDay={data.focusMinutesByDay}
+        waterGoalMl={data.waterGoalMl}
+        waterEntriesByDay={data.waterEntriesByDay}
         onHabits={() => setTab("habitos")}
       />
     );
@@ -407,6 +401,20 @@ export function MercuryWebApp() {
                       </button>
                     );
                   })}
+                  <a
+                    href="/treinos"
+                    className="flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-semibold text-white/58 transition hover:bg-white/[0.05] hover:text-white"
+                  >
+                    <Dumbbell className="size-5" />
+                    Treinos
+                  </a>
+                  <a
+                    href="/water"
+                    className="flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-semibold text-white/58 transition hover:bg-white/[0.05] hover:text-white"
+                  >
+                    <Droplets className="size-5" />
+                    Água
+                  </a>
                 </div>
                 {!profileComplete && (
                   <button

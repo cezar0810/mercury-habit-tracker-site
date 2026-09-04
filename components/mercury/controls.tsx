@@ -1,6 +1,6 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { Check, Dumbbell } from "lucide-react";
 import { tabs, type Tab } from "./data";
 
 export function CheckBox({
@@ -43,7 +43,7 @@ export function BottomNavigation({
   return (
     <nav
       aria-label="Navegação principal"
-      className="mx-4 mb-4 grid grid-cols-4 rounded-[25px] bg-[#0b0c0d] px-1 py-1.5 shadow-[0_-8px_36px_rgba(0,0,0,0.3)] ring-1 ring-white/[0.025]"
+      className="mx-2 mb-3 grid grid-cols-5 rounded-[25px] bg-[#0b0c0d] px-1 py-1.5 shadow-[0_-8px_36px_rgba(0,0,0,0.3)] ring-1 ring-white/[0.025] sm:mx-4 sm:mb-4"
     >
       {tabs.map((item) => {
         const Icon = item.icon;
@@ -65,6 +65,13 @@ export function BottomNavigation({
           </button>
         );
       })}
+      <a
+        href="/treinos"
+        className="flex min-h-14 flex-col items-center justify-center gap-1 rounded-[20px] text-[11px] font-medium text-white/55 transition hover:bg-white/[0.035] hover:text-white/85"
+      >
+        <Dumbbell className="size-6 stroke-[2]" />
+        <span>Treinos</span>
+      </a>
     </nav>
   );
 }

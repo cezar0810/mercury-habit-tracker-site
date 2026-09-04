@@ -25,6 +25,7 @@ export function HabitsScreen({
   viewMonth,
   onMonthChange,
   onAddHabit,
+  manualHabitCount,
   onRenameHabit,
   onDeleteHabit,
   onMoveHabit,
@@ -35,6 +36,7 @@ export function HabitsScreen({
   viewMonth: Date;
   onMonthChange: (month: Date) => void;
   onAddHabit: (title: string) => boolean;
+  manualHabitCount: number;
   onRenameHabit: (id: string, title: string) => void;
   onDeleteHabit: (id: string) => void;
   onMoveHabit: (id: string, direction: -1 | 1) => void;
@@ -43,7 +45,7 @@ export function HabitsScreen({
   const [newHabit, setNewHabit] = useState("");
   const [notice, setNotice] = useState("");
   const days = useMemo(() => daysForMonth(viewMonth), [viewMonth]);
-  const gridColumns = "minmax(215px, 1fr) repeat(" + days.length + ", 48px)";
+  const gridColumns = "minmax(250px, 1fr) repeat(" + days.length + ", 48px)";
   const completed = days.reduce(
     (total, day) =>
       total +
@@ -62,7 +64,7 @@ export function HabitsScreen({
       return;
     }
     setNotice(
-      habits.length >= 15
+      manualHabitCount >= 15
         ? "O limite é de 15 hábitos."
         : "Escreva um nome para o hábito.",
     );
@@ -215,23 +217,37 @@ export function HabitsScreen({
                         <ChevronsDown className="size-3.5" />
                       </button>
                     </div>
+                    <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-white/[0.05] text-base" aria-hidden="true">
+                      {habit.emoji}
+                    </span>
                     <input
                       value={habit.title}
-                      onChange={(event) =>
-                        onRenameHabit(habit.id, event.target.value)
-                      }
+                      onChange={(event) => onRenameHabit(habit.id, event.target.value)}
+                      readOnly={habit.source === "workout"}
+                      title={habit.source === "workout" ? "Sincronizado com a página Treinos" : undefined}
                       maxLength={45}
-                      aria-label={"Editar nome de " + habit.title}
-                      className="min-w-0 flex-1 bg-transparent text-[14px] font-semibold outline-none placeholder:text-white/30 focus:text-[#8db8ff]"
+                      aria-label={(habit.source === "workout" ? "Hábito sincronizado " : "Editar nome de ") + habit.title}
+                      className="min-w-0 flex-1 bg-transparent text-[14px] font-semibold outline-none placeholder:text-white/30 focus:text-[#8db8ff] read-only:cursor-default read-only:text-white/78"
                     />
-                    <button
-                      type="button"
-                      onClick={() => onDeleteHabit(habit.id)}
-                      aria-label={"Excluir " + habit.title}
-                      className="grid size-8 place-items-center rounded-lg text-white/42 transition hover:bg-red-500/10 hover:text-red-300"
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
+                    {habit.source === "workout" ? (
+                      <a
+                        href="/treinos"
+                        aria-label={"Abrir treino " + habit.title}
+                        title="Sincronizado com Treinos"
+                        className="grid size-8 place-items-center rounded-lg text-[#6ca0ff] transition hover:bg-[#347cf6]/10"
+                      >
+                        <span aria-hidden="true" className="text-sm">↗</span>
+                      </a>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => onDeleteHabit(habit.id)}
+                        aria-label={"Excluir " + habit.title}
+                        className="grid size-8 place-items-center rounded-lg text-white/42 transition hover:bg-red-500/10 hover:text-red-300"
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    )}
                   </div>
                   {days.map((day) => {
                     const key = dateKey(day);

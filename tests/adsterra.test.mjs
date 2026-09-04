@@ -106,7 +106,8 @@ test("tracker tem um lateral e um responsivo, preservando dados e download", asy
   assert.equal((webApp.match(/<AdsterraSidebarAd/g) ?? []).length, 1);
   assert.equal((webApp.match(/<AdsterraContentAd/g) ?? []).length, 1);
   assert.doesNotMatch(webApp, /<AdsterraAppAd|<AdsterraBanner\s/);
-  assert.match(webApp, /mercury-habit-tracker-web-v1/);
+  const storage = await readFile(new URL("../components/mercury/mercury-storage.ts", import.meta.url), "utf8");
+  assert.match(storage, /mercury-habit-tracker-web-v1/);
   const manifest = JSON.parse(await readFile(new URL("../public/version.json", import.meta.url), "utf8"));
   const apkDownload = await readFile(new URL("../components/mercury/apk-download.tsx", import.meta.url), "utf8");
   assert.match(download, /<ApkDownload/);

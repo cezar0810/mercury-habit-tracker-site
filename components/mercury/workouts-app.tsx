@@ -45,8 +45,11 @@ import {
   type WorkoutExercise,
   type WorkoutPlan,
 } from "./workouts-data";
-
-const STORAGE_KEY = "mercury-workouts-v1";
+import {
+  WORKOUTS_STORAGE_KEY,
+  syncCompletedWorkout,
+  syncWorkoutPlans,
+} from "./mercury-storage";
 
 type DeleteTarget =
   | { kind: "workout"; workoutId: string; name: string }
@@ -135,12 +138,13 @@ export function MercuryWorkoutsApp() {
 
   useEffect(() => {
     try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
+      const raw = window.localStorage.getItem(WORKOUTS_STORAGE_KEY);
       const restored = cleanWorkoutPlans(raw ? JSON.parse(raw) : []);
       setWorkouts(restored);
       setSelectedWorkoutId(restored[0]?.id ?? "");
+      syncWorkoutPlans(restored);
     } catch {
-      window.localStorage.removeItem(STORAGE_KEY);
+      window.localStorage.removeItem(WORKOUTS_STORAGE_KEY);
     } finally {
       setHydrated(true);
     }
@@ -148,7 +152,7 @@ export function MercuryWorkoutsApp() {
 
   useEffect(() => {
     if (hydrated) {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(workouts));
+      window.localStorage.setItem(WORKOUTS_STORAGE_KEY, JSON.stringify(workouts));
     }
   }, [hydrated, workouts]);
 
@@ -206,7 +210,9 @@ export function MercuryWorkoutsApp() {
       name: name.slice(0, 36),
       exercises: [],
     };
-    setWorkouts((current) => [...current, workout]);
+    const nextWorkouts = [...workouts, workout];
+    setWorkouts(nextWorkouts);
+    syncWorkoutPlans(nextWorkouts);
     setSelectedWorkoutId(workout.id);
     setWorkoutName("");
     setCreateOpen(false);
@@ -257,13 +263,12 @@ export function MercuryWorkoutsApp() {
   function confirmDelete() {
     if (!deleteTarget) return;
     if (deleteTarget.kind === "workout") {
-      setWorkouts((current) => {
-        const next = current.filter((workout) => workout.id !== deleteTarget.workoutId);
-        if (selectedWorkoutId === deleteTarget.workoutId) {
-          setSelectedWorkoutId(next[0]?.id ?? "");
-        }
-        return next;
-      });
+      const next = workouts.filter((workout) => workout.id !== deleteTarget.workoutId);
+      setWorkouts(next);
+      syncWorkoutPlans(next);
+      if (selectedWorkoutId === deleteTarget.workoutId) {
+        setSelectedWorkoutId(next[0]?.id ?? "");
+      }
     } else {
       setWorkouts((current) => current.map((workout) =>
         workout.id === deleteTarget.workoutId
@@ -372,6 +377,7 @@ export function MercuryWorkoutsApp() {
             type="button"
             disabled={!finished}
             onClick={() => {
+              syncCompletedWorkout({ id: activeWorkout.id, name: activeWorkout.name });
               setCompletedWorkout(activeWorkout.name);
               setSession(null);
             }}
