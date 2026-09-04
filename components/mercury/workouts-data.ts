@@ -1,7 +1,7 @@
 export const MAX_WORKOUTS = 5;
 
 export const EXERCISE_DATA_URL =
-  "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/dist/exercises.json";
+  "https://raw.githubusercontent.com/gugeldev/exercicios-bd-ptbr/main/exercises/exercises-ptbr-full-translation.json";
 
 const EXERCISE_IMAGE_BASE =
   "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/";

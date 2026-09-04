@@ -25,14 +25,19 @@ test("limita o usuário a cinco treinos e limpa contagens", () => {
   assert.equal(plans[0].exercises[0].reps, 1);
 });
 
-test("busca por nome, músculo e equipamento", () => {
+test("busca em português por nome, músculo e equipamento", () => {
   const catalog = data.normalizeCatalog([
-    { id: "1", name: "Bench Press", primaryMuscles: ["pectorals"], equipment: "barbell" },
-    { id: "2", name: "Air Bike", primaryMuscles: ["abdominals"], equipment: "body only" },
+    { id: "1", name: "Supino com halteres", primaryMuscles: ["peito"], equipment: "halteres" },
+    { id: "2", name: "Tríceps no banco", primaryMuscles: ["triceps"], equipment: "peso-do-corpo" },
   ]);
-  assert.equal(data.searchCatalog(catalog, "bench")[0].id, "1");
-  assert.equal(data.searchCatalog(catalog, "abdominals")[0].id, "2");
-  assert.equal(data.searchCatalog(catalog, "barbell")[0].id, "1");
+  assert.equal(data.searchCatalog(catalog, "supino")[0].id, "1");
+  assert.equal(data.searchCatalog(catalog, "tríceps")[0].id, "2");
+  assert.equal(data.searchCatalog(catalog, "halteres")[0].id, "1");
+});
+
+test("usa o catálogo com tradução completa em português", () => {
+  assert.match(data.EXERCISE_DATA_URL, /exercicios-bd-ptbr/);
+  assert.match(data.EXERCISE_DATA_URL, /full-translation\.json$/);
 });
 
 test("gera a URL pública das imagens sem perder subpastas", () => {

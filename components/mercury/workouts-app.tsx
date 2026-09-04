@@ -64,9 +64,34 @@ function createId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+const PORTUGUESE_LABELS: Record<string, string> = {
+  avancado: "Avançado",
+  intermediario: "Intermediário",
+  forca: "Força",
+  "levantamento-olimpico": "Levantamento olímpico",
+  "bola-de-exercicio": "Bola de exercício",
+  "bola-medicinal": "Bola medicinal",
+  "barra-w": "Barra W",
+  maquina: "Máquina",
+  "peso-do-corpo": "Peso do corpo",
+  "rolo-de-espuma": "Rolo de espuma",
+  antebracos: "Antebraços",
+  biceps: "Bíceps",
+  gluteos: "Glúteos",
+  "inferior-das-costas": "Lombar",
+  "meio-das-costas": "Meio das costas",
+  pescoco: "Pescoço",
+  quadriceps: "Quadríceps",
+  trapezio: "Trapézio",
+  triceps: "Tríceps",
+};
+
 function label(value: string) {
   if (!value || value === "não informado") return "Não informado";
-  return value.charAt(0).toLocaleUpperCase() + value.slice(1);
+  const normalized = value.toLocaleLowerCase();
+  if (PORTUGUESE_LABELS[normalized]) return PORTUGUESE_LABELS[normalized];
+  const readable = value.replaceAll("-", " ");
+  return readable.charAt(0).toLocaleUpperCase("pt-BR") + readable.slice(1);
 }
 
 function ExerciseImage({ path, name }: { path?: string; name: string }) {
@@ -127,6 +152,16 @@ export function MercuryWorkoutsApp() {
     }
   }, [hydrated, workouts]);
 
+  useEffect(() => {
+    if (hydrated) void loadCatalog();
+  }, [hydrated]);
+
+  useEffect(() => {
+    if (!chosenExercise || !catalog.length) return;
+    const translated = catalog.find((exercise) => exercise.id === chosenExercise.id);
+    if (translated && translated !== chosenExercise) setChosenExercise(translated);
+  }, [catalog, chosenExercise?.id]);
+
   const selectedWorkout = workouts.find((workout) => workout.id === selectedWorkoutId) ?? null;
   const activeWorkout = session
     ? workouts.find((workout) => workout.id === session.workoutId) ?? null
@@ -147,6 +182,14 @@ export function MercuryWorkoutsApp() {
       const nextCatalog = normalizeCatalog(await response.json());
       if (!nextCatalog.length) throw new Error("empty catalog");
       setCatalog(nextCatalog);
+      const translatedById = new Map(nextCatalog.map((exercise) => [exercise.id, exercise]));
+      setWorkouts((current) => current.map((workout) => ({
+        ...workout,
+        exercises: workout.exercises.map((exercise) => {
+          const translated = translatedById.get(exercise.id);
+          return translated ? { ...translated, sets: exercise.sets, reps: exercise.reps } : exercise;
+        }),
+      })));
     } catch {
       setCatalogError("Não foi possível carregar os exercícios. Verifique sua internet e tente novamente.");
     } finally {
@@ -184,6 +227,7 @@ export function MercuryWorkoutsApp() {
     setPickerMode("details");
     setChosenExercise(exercise);
     setPickerOpen(true);
+    void loadCatalog();
   }
 
   function chooseExercise(exercise: CatalogExercise) {
@@ -515,7 +559,7 @@ export function MercuryWorkoutsApp() {
         </div>
 
         <footer className="py-8 text-center text-xs leading-5 text-white/35">
-          Catálogo de exercícios: <a className="underline underline-offset-4 hover:text-white/60" href="https://github.com/yuhonas/free-exercise-db" target="_blank" rel="noreferrer">Free Exercise DB</a>, disponibilizado em domínio público. As instruções originais estão em inglês.
+          Catálogo em português: <a className="underline underline-offset-4 hover:text-white/60" href="https://github.com/gugeldev/exercicios-bd-ptbr" target="_blank" rel="noreferrer">Exercícios BD PT-BR</a>, baseado no <a className="underline underline-offset-4 hover:text-white/60" href="https://github.com/yuhonas/free-exercise-db" target="_blank" rel="noreferrer">Free Exercise DB</a>.
         </footer>
       </section>
 
