@@ -42,7 +42,9 @@ export function ProgressScreen({ data }: { data: MercuryData }) {
           <div className="flex justify-between gap-4 py-3 text-sm"><dt className="text-white/70">Dias com registro de água</dt><dd>{report.waterRecordedDays} de {report.availableDays.length}</dd></div>
           <div className="flex justify-between gap-4 py-3 text-sm"><dt className="text-white/70">Tempo de foco concluído</dt><dd>{Math.floor(report.focusMinutes / 60)} h {report.focusMinutes % 60} min</dd></div>
           <div className="flex justify-between gap-4 py-3 text-sm"><dt className="text-white/70">Treinos realizados, incluindo extras</dt><dd>{report.workoutsDone}</dd></div>
+          <div className="flex justify-between gap-4 py-3 text-sm"><dt className="text-white/70">Energia estimada nos treinos</dt><dd>≈ {report.caloriesBurned} kcal</dd></div>
         </dl>
+        <p className="mt-3 text-xs leading-5 text-white/45">Calorias são uma estimativa baseada no peso, nas séries, repetições e valores MET — não uma medição clínica.</p>
       </section>
     </>}
   </div>;

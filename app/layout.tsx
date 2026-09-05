@@ -11,6 +11,9 @@ export const metadata: Metadata = {
     icon: "/mercury-app-icon.png",
     apple: "/mercury-app-icon.png",
   },
+  other: {
+    "codex-preview": "development",
+  },
 };
 
 export default function RootLayout({

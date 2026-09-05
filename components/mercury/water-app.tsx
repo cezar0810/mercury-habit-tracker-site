@@ -19,6 +19,7 @@ import {
 } from "./state";
 import { readMercuryData, writeMercuryData } from "./mercury-storage";
 import { setWaterGoal } from "./routine";
+import { PhysicalProfileDialog, withPhysicalProfile } from "./physical-profile-dialog";
 
 const QUICK_AMOUNTS = [250, 350, 500];
 
@@ -231,7 +232,7 @@ export function MercuryWaterApp() {
                 </div>
                 <div>
                   <h2 className="font-bold">Meta diária</h2>
-                  <p className="text-xs text-white/42">Ajuste ao seu objetivo</p>
+                  <p className="text-xs text-white/42">{data.weightKg && !data.waterGoalCustomized ? "Estimativa personalizada · 35 ml/kg" : "Ajuste livremente ao seu objetivo"}</p>
                 </div>
               </div>
               <form onSubmit={saveGoal} className="mt-4 flex gap-2">
@@ -295,9 +296,19 @@ export function MercuryWaterApp() {
         </div>
 
         <p className="mt-5 text-center text-[11px] leading-5 text-white/30">
-          A meta é pessoal e pode variar. Este controle não substitui orientação profissional.
+          Você pode registrar água mesmo depois de alcançar a meta. A recomendação é uma estimativa e não substitui orientação profissional.
         </p>
       </section>
+      <PhysicalProfileDialog
+        open={hydrated && !data.physicalProfilePrompted}
+        data={data}
+        onSave={(values) => {
+          const next = withPhysicalProfile(data, values);
+          persist(next);
+          setGoalDraft(String(next.waterGoalMl));
+        }}
+        onSkip={() => persist({ ...data, physicalProfilePrompted: true })}
+      />
     </main>
   );
 }

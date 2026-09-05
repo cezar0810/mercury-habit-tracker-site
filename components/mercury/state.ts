@@ -46,6 +46,11 @@ export type MercuryData = {
   waterEntriesByDay: Record<string, WaterEntry[]>;
   waterGoalHistory: Array<{ from: string; goalMl: number }>;
   workoutCompletionsByDay: Record<string, string[]>;
+  workoutCaloriesByDay: Record<string, number>;
+  weightKg: number | null;
+  heightCm: number | null;
+  physicalProfilePrompted: boolean;
+  waterGoalCustomized: boolean;
 };
 
 export const plannerPeriods: PlannerPeriod[] = [
@@ -70,6 +75,11 @@ export const blankMercuryData: MercuryData = {
   waterEntriesByDay: {},
   waterGoalHistory: [],
   workoutCompletionsByDay: {},
+  workoutCaloriesByDay: {},
+  weightKg: null,
+  heightCm: null,
+  physicalProfilePrompted: false,
+  waterGoalCustomized: false,
 };
 
 export function habitEmoji(title: string) {
@@ -184,6 +194,15 @@ export function cleanMercuryData(value: unknown): MercuryData {
       if (values[habit.id] && habit.sourceId) workoutCompletionsByDay[day] = [...new Set([...(workoutCompletionsByDay[day] || []), habit.sourceId])];
     });
   });
+  const workoutCaloriesByDay: Record<string, number> = {};
+  Object.entries(cleanRecord(saved.workoutCaloriesByDay)).forEach(([day, calories]) => {
+    const amount = Number(calories);
+    if (validDay(day) && Number.isFinite(amount) && amount >= 0) {
+      workoutCaloriesByDay[day] = Math.min(10000, Math.round(amount));
+    }
+  });
+  const weight = Number(saved.weightKg);
+  const height = Number(saved.heightCm);
   return {
     schemaVersion: 2,
     trackingSince,
@@ -199,6 +218,11 @@ export function cleanMercuryData(value: unknown): MercuryData {
     waterGoalHistory: waterGoalHistory.length ? waterGoalHistory : [{ from: trackingSince, goalMl: sanitizedGoal }],
     waterEntriesByDay,
     workoutCompletionsByDay,
+    workoutCaloriesByDay,
+    weightKg: Number.isFinite(weight) && weight >= 25 && weight <= 350 ? Math.round(weight * 10) / 10 : null,
+    heightCm: Number.isFinite(height) && height >= 100 && height <= 250 ? Math.round(height) : null,
+    physicalProfilePrompted: saved.physicalProfilePrompted === true,
+    waterGoalCustomized: saved.waterGoalCustomized === true,
   };
 }
 

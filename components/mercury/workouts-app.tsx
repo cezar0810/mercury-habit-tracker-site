@@ -47,9 +47,14 @@ import {
 } from "./workouts-data";
 import {
   WORKOUTS_STORAGE_KEY,
+  readMercuryData,
   syncCompletedWorkout,
   syncWorkoutPlans,
+  writeMercuryData,
 } from "./mercury-storage";
+import { blankMercuryData, type MercuryData } from "./state";
+import { estimatedWorkoutCalories } from "./health-metrics";
+import { PhysicalProfileDialog, withPhysicalProfile } from "./physical-profile-dialog";
 
 type DeleteTarget =
   | { kind: "workout"; workoutId: string; name: string }
@@ -135,6 +140,8 @@ export function MercuryWorkoutsApp() {
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [session, setSession] = useState<TrainingSession | null>(null);
   const [completedWorkout, setCompletedWorkout] = useState("");
+  const [completedCalories, setCompletedCalories] = useState(0);
+  const [physicalData, setPhysicalData] = useState<MercuryData>({ ...blankMercuryData });
 
   useEffect(() => {
     try {
@@ -143,6 +150,7 @@ export function MercuryWorkoutsApp() {
       setWorkouts(restored);
       setSelectedWorkoutId(restored[0]?.id ?? "");
       syncWorkoutPlans(restored);
+      setPhysicalData(readMercuryData());
     } catch {
       window.localStorage.removeItem(WORKOUTS_STORAGE_KEY);
     } finally {
@@ -282,6 +290,7 @@ export function MercuryWorkoutsApp() {
   function startTraining(workout: WorkoutPlan) {
     if (!workout.exercises.length) return;
     setCompletedWorkout("");
+    setCompletedCalories(0);
     setSession({ workoutId: workout.id, completed: [] });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -377,8 +386,12 @@ export function MercuryWorkoutsApp() {
             type="button"
             disabled={!finished}
             onClick={() => {
-              syncCompletedWorkout({ id: activeWorkout.id, name: activeWorkout.name });
+              const calories = physicalData.weightKg
+                ? estimatedWorkoutCalories(physicalData.weightKg, activeWorkout.exercises)
+                : 0;
+              syncCompletedWorkout({ id: activeWorkout.id, name: activeWorkout.name }, calories);
               setCompletedWorkout(activeWorkout.name);
+              setCompletedCalories(calories);
               setSession(null);
             }}
             className="mt-6 inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#347cf6] text-base font-black shadow-[0_14px_35px_rgba(52,124,246,0.28)] disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/30"
@@ -431,7 +444,7 @@ export function MercuryWorkoutsApp() {
         {completedWorkout && (
           <div className="mt-5 flex items-center gap-3 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-sm text-emerald-100">
             <CircleCheckBig className="size-5 shrink-0 text-emerald-400" />
-            Treino “{completedWorkout}” concluído. Bom trabalho!
+            Treino “{completedWorkout}” concluído. {completedCalories > 0 ? `≈ ${completedCalories} kcal registradas.` : "Bom trabalho!"}
             <button type="button" onClick={() => setCompletedWorkout("")} className="ml-auto rounded-lg p-1 text-emerald-100/60 hover:bg-white/10" aria-label="Fechar mensagem">
               <X className="size-4" />
             </button>
@@ -622,6 +635,20 @@ export function MercuryWorkoutsApp() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <PhysicalProfileDialog
+        open={hydrated && !physicalData.physicalProfilePrompted}
+        data={physicalData}
+        onSave={(values) => {
+          const next = withPhysicalProfile(readMercuryData(), values);
+          writeMercuryData(next);
+          setPhysicalData(next);
+        }}
+        onSkip={() => {
+          const next = { ...readMercuryData(), physicalProfilePrompted: true };
+          writeMercuryData(next);
+          setPhysicalData(next);
+        }}
+      />
     </main>
   );
 }

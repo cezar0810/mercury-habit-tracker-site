@@ -18,6 +18,7 @@ export function InicioScreen({ data, onRoutine, onProgress, onHabit, onTask, onW
   const water = waterTotalForDay(data,today);
   const waterPercent = Math.min(100, Math.round(water / data.waterGoalMl * 100));
   const report = weekReport(data,today);
+  const caloriesToday = data.workoutCaloriesByDay[today] || 0;
   const [lastWaterId, setLastWaterId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   return <div className="space-y-6">
@@ -41,7 +42,7 @@ export function InicioScreen({ data, onRoutine, onProgress, onHabit, onTask, onW
         <div className="flex flex-wrap gap-2"><button type="button" onClick={() => { setLastWaterId(onWater(250)); setNotice("250 ml registrados."); }} className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-[#347cf6] px-3 text-sm font-semibold"><Plus className="size-4" />250 ml</button>{lastWaterId && <button type="button" onClick={() => { onUndoWater(lastWaterId); setLastWaterId(null); setNotice("Registro desfeito."); }} className="min-h-11 rounded-xl border border-white/20 px-3 text-sm">Desfazer</button>}</div>
         <a href="/water" className="mt-2 inline-flex min-h-11 items-center gap-2 text-sm text-sky-200"><Droplets className="size-4" />Quantidades e meta de água</a>
         <div className="mt-3 flex flex-wrap justify-between gap-2 border-t border-white/10 pt-4 text-sm"><span className="text-white/65">Foco concluído hoje</span><span>{data.focusMinutesByDay[today] || 0} min</span></div>
-        <a href="/treinos" className="mt-4 flex min-h-11 items-center gap-2 rounded-xl border border-white/15 px-3 text-sm"><Dumbbell className="size-4" />Meus treinos<ArrowRight className="ml-auto size-4" /></a>
+        <a href="/treinos" className="mt-4 flex min-h-11 items-center gap-2 rounded-xl border border-white/15 px-3 text-sm"><Dumbbell className="size-4" /><span>Meus treinos{caloriesToday > 0 && <small className="ml-2 text-xs text-white/45">≈ {caloriesToday} kcal hoje</small>}</span><ArrowRight className="ml-auto size-4" /></a>
         <p className="mt-3 text-xs text-sky-200" role="status">{notice}</p>
       </section>
     </div>

@@ -80,11 +80,13 @@ export function withCompletedWorkout(
   data: MercuryData,
   workout: WorkoutIdentity,
   day = dateKey(new Date()),
+  calories = 0,
 ) {
   const habit = workoutHabit(workout, data.habits.find(item => item.sourceId === workout.id), day);
   const habits = data.habits.some((item) => item.id === habit.id)
     ? data.habits.map((item) => item.id === habit.id ? habit : item)
     : [...data.habits, habit];
+  const alreadyCompleted = (data.workoutCompletionsByDay[day] || []).includes(workout.id);
   return {
     ...data,
     habits,
@@ -96,6 +98,10 @@ export function withCompletedWorkout(
       ...data.completions,
       [day]: { ...(data.completions[day] || {}), [habit.id]: true },
     },
+    workoutCaloriesByDay: {
+      ...data.workoutCaloriesByDay,
+      [day]: (data.workoutCaloriesByDay[day] || 0) + (alreadyCompleted ? 0 : Math.max(0, Math.round(calories))),
+    },
   };
 }
 
@@ -104,7 +110,7 @@ export function syncWorkoutPlans(workouts: WorkoutIdentity[]) {
   writeMercuryData(next);
 }
 
-export function syncCompletedWorkout(workout: WorkoutIdentity) {
-  const next = withCompletedWorkout(readMercuryData(), workout);
+export function syncCompletedWorkout(workout: WorkoutIdentity, calories = 0) {
+  const next = withCompletedWorkout(readMercuryData(), workout, dateKey(new Date()), calories);
   writeMercuryData(next);
 }

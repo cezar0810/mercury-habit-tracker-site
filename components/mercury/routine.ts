@@ -35,7 +35,7 @@ export function scheduleHabit(habit: Habit, weekdays: number[], from: string): H
   return { ...habit, scheduleHistory: [...(habit.scheduleHistory || []).filter(item => item.from !== from), { from, weekdays: [...new Set(weekdays)].filter(day => allWeekdays.includes(day)) }].sort((a,b) => a.from.localeCompare(b.from)) };
 }
 export function setWaterGoal(data: MercuryData, goalMl: number, from = dateKey(new Date())): MercuryData {
-  return { ...data, waterGoalMl: goalMl, waterGoalHistory: [...data.waterGoalHistory.filter(item => item.from !== from), { from, goalMl }].sort((a,b) => a.from.localeCompare(b.from)) };
+  return { ...data, waterGoalMl: goalMl, waterGoalCustomized: true, waterGoalHistory: [...data.waterGoalHistory.filter(item => item.from !== from), { from, goalMl }].sort((a,b) => a.from.localeCompare(b.from)) };
 }
 export function addWater(data: MercuryData, amountMl: number, now = new Date()): MercuryData {
   const day = dateKey(now);
@@ -81,5 +81,6 @@ export function weekReport(data: MercuryData, anchor: string, today = dateKey(ne
     waterGoalDays: waterDays.filter(day => waterTotalForDay(data,day) >= waterGoalForDay(data,day)).length,
     focusMinutes: availableDays.reduce((total,day) => total + (data.focusMinutesByDay[day] || 0),0),
     workoutsDone: availableDays.reduce((total,day) => total + (data.workoutCompletionsByDay[day] || []).length,0),
+    caloriesBurned: availableDays.reduce((total,day) => total + (data.workoutCaloriesByDay[day] || 0),0),
   };
 }

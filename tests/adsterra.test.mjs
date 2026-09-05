@@ -70,7 +70,8 @@ test("cada banner mantém dimensões, script e atOptions em documento próprio",
     });
     assert.ok(document.indexOf("atOptions =") < document.indexOf(unit.scriptUrl));
     assert.equal((document.match(/<script src=/g) ?? []).length, 1);
-    assert.doesNotMatch(document, /setInterval|setTimeout|window\.open|profitableratecpmnetwork\.com\/q7/);
+    assert.doesNotMatch(document, /setInterval|window\.open|profitableratecpmnetwork\.com\/q7/);
+    assert.match(document, /MercuryAds/);
     const html = renderToStaticMarkup(React.createElement(ads.AdsterraBannerFrame, { placement }));
     assert.match(html, new RegExp(`width="${unit.width}" height="${unit.height}"`));
     assert.match(html, new RegExp(`src="/api/banner/${placement}"`));

@@ -53,6 +53,7 @@ import {
   readMercuryData,
   writeMercuryData,
 } from "./mercury-storage";
+import { withPhysicalProfile } from "./physical-profile-dialog";
 
 type DeleteRequest =
   | { type: "habit"; id: string; title: string }
@@ -74,6 +75,8 @@ export function MercuryWebApp() {
   const [goalDraft, setGoalDraft] = useState("");
   const [genderDraft, setGenderDraft] = useState("");
   const [classDraft, setClassDraft] = useState("");
+  const [weightDraft, setWeightDraft] = useState("");
+  const [heightDraft, setHeightDraft] = useState("");
   const [deleteRequest, setDeleteRequest] = useState<DeleteRequest | null>(
     null,
   );
@@ -110,6 +113,8 @@ export function MercuryWebApp() {
     setGoalDraft(data.goal);
     setGenderDraft(data.gender);
     setClassDraft(data.characterClass);
+    setWeightDraft(data.weightKg?.toString() || "");
+    setHeightDraft(data.heightCm?.toString() || "");
     setSettingsOpen(true);
   };
 
@@ -117,13 +122,20 @@ export function MercuryWebApp() {
     event.preventDefault();
     const nextName = nameDraft.trim();
     if (!nextName) return;
-    setData((current) => ({
-      ...current,
-      name: nextName.slice(0, 28),
-      goal: goalDraft,
-      gender: genderDraft,
-      characterClass: classDraft,
-    }));
+    setData((current) => {
+      const next = {
+        ...current,
+        name: nextName.slice(0, 28),
+        goal: goalDraft,
+        gender: genderDraft,
+        characterClass: classDraft,
+      };
+      const weightKg = Number(weightDraft.replace(",", "."));
+      const heightCm = Number(heightDraft.replace(",", "."));
+      return weightKg >= 25 && weightKg <= 350 && heightCm >= 100 && heightCm <= 250
+        ? withPhysicalProfile(next, { weightKg: Math.round(weightKg * 10) / 10, heightCm: Math.round(heightCm) })
+        : next;
+    });
     setSettingsOpen(false);
   };
 
@@ -593,6 +605,14 @@ export function MercuryWebApp() {
                 <option value="Cuidar da saúde">Cuidar da saúde</option>
                 <option value="Ter mais foco">Ter mais foco</option>
               </select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="text-sm font-semibold">Peso
+                <span className="relative mt-2 block"><input type="number" min={25} max={350} step="0.1" value={weightDraft} onChange={event => setWeightDraft(event.target.value)} placeholder="70" className="min-h-12 w-full rounded-xl border border-white/[0.14] bg-black/30 px-3 pr-9 text-base outline-none focus:border-[#347cf6]" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/40">kg</span></span>
+              </label>
+              <label className="text-sm font-semibold">Altura
+                <span className="relative mt-2 block"><input type="number" min={100} max={250} step="1" value={heightDraft} onChange={event => setHeightDraft(event.target.value)} placeholder="175" className="min-h-12 w-full rounded-xl border border-white/[0.14] bg-black/30 px-3 pr-9 text-base outline-none focus:border-[#347cf6]" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/40">cm</span></span>
+              </label>
             </div>
             <div>
               <label className="text-sm font-semibold" htmlFor="mercury-gender">

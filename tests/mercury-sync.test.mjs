@@ -17,6 +17,7 @@ const recognition = await loadSource("../components/mercury/habit-recognition.ts
 const state = await loadSource("../components/mercury/state.ts", { "./habit-recognition": recognition });
 const storage = await loadSource("../components/mercury/mercury-storage.ts", { "./state": state });
 const routine = await loadSource("../components/mercury/routine.ts", { "./state": state, "./habit-recognition": recognition });
+const health = await loadSource("../components/mercury/health-metrics.ts");
 const clean = value => JSON.parse(JSON.stringify(value));
 
 test("reconhece somente hábitos com intenção clara", () => {
@@ -87,4 +88,36 @@ test("relatório ignora futuro e usa medidas separadas", () => {
   assert.equal(report.done, 1);
   assert.equal(report.focusMinutes, 25);
   assert.equal(report.rows.filter(row => row.day > "2026-09-04").every(row => row.rate === null), true);
+});
+
+test("meta de água e energia usam estimativas determinísticas", () => {
+  assert.equal(health.recommendedWaterMl(70), 2450);
+  assert.equal(health.estimatedStepCalories(10000, 70, 175), 429);
+  const exercises = [
+    { sets: 3, reps: 10 },
+    { sets: 4, reps: 12 },
+  ];
+  assert.equal(health.estimatedWorkoutMinutes(exercises), 9);
+  assert.equal(health.estimatedWorkoutCalories(70, exercises), 39);
+});
+
+test("calorias do treino entram uma vez no relatório semanal", () => {
+  const initial = state.cleanMercuryData({
+    schemaVersion: 2,
+    trackingSince: "2026-09-01",
+  });
+  const once = storage.withCompletedWorkout(
+    initial,
+    { id: "abc", name: "Treino A" },
+    "2026-09-04",
+    120,
+  );
+  const twice = storage.withCompletedWorkout(
+    once,
+    { id: "abc", name: "Treino A" },
+    "2026-09-04",
+    120,
+  );
+  assert.equal(twice.workoutCaloriesByDay["2026-09-04"], 120);
+  assert.equal(routine.weekReport(twice, "2026-09-04", "2026-09-04").caloriesBurned, 120);
 });

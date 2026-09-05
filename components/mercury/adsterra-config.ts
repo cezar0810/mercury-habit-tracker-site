@@ -55,5 +55,25 @@ ${label ? '<p class="ad-label">PUBLICIDADE</p>' : ""}
 <p id="ad-status" role="status" hidden>Publicidade indisponível no momento.</p>
 <script>atOptions = ${JSON.stringify({ key: unit.key, format: "iframe", height: unit.height, width: unit.width, params: {} })};</script>
 <script src="${unit.scriptUrl}" data-cfasync="false" onerror="document.getElementById('ad-status').hidden=false; if(window.MercuryAds) window.MercuryAds.postMessage('unavailable');"></script>
+<script>(function(){
+  var finished=false;
+  function send(message){try{if(window.MercuryAds&&window.MercuryAds.postMessage)window.MercuryAds.postMessage(message)}catch(error){}}
+  function verify(){
+    var frame=document.querySelector('iframe');
+    if(!frame)return false;
+    finished=true;
+    document.body.dataset.mercuryAd='loaded';
+    send('loaded');
+    return true;
+  }
+  if(!verify()){
+    var observer=new MutationObserver(function(){if(verify())observer.disconnect()});
+    observer.observe(document.body,{childList:true,subtree:true});
+    setTimeout(function(){
+      observer.disconnect();
+      if(!finished){document.getElementById('ad-status').hidden=false;send('unavailable')}
+    },15000);
+  }
+})();</script>
 </body></html>`;
 }
