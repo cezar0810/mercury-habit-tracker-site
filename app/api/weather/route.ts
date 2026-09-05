@@ -8,9 +8,14 @@ type MetForecast = {
             air_temperature?: number;
             relative_humidity?: number;
             wind_speed?: number;
+            wind_from_direction?: number;
+            air_pressure_at_sea_level?: number;
           };
         };
-        next_1_hours?: { summary?: { symbol_code?: string } };
+        next_1_hours?: {
+          summary?: { symbol_code?: string };
+          details?: { precipitation_amount?: number };
+        };
         next_6_hours?: { summary?: { symbol_code?: string } };
         next_12_hours?: { summary?: { symbol_code?: string } };
       };
@@ -60,12 +65,25 @@ export async function GET(request: Request) {
       current.data?.next_6_hours?.summary?.symbol_code ||
       current.data?.next_12_hours?.summary?.symbol_code ||
       "cloudy";
+    const observedAt = current.time ? Date.parse(current.time) : Date.now();
+    const next24Hours = (forecast.properties?.timeseries || []).filter((item) => {
+      const timestamp = item.time ? Date.parse(item.time) : Number.NaN;
+      return Number.isFinite(timestamp) && timestamp >= observedAt && timestamp <= observedAt + 24 * 60 * 60 * 1000;
+    });
+    const temperatures = next24Hours
+      .map((item) => item.data?.instant?.details?.air_temperature)
+      .filter((value): value is number => Number.isFinite(value));
 
     return Response.json(
       {
         temperature: details.air_temperature,
+        minTemperature: temperatures.length ? Math.min(...temperatures) : details.air_temperature,
+        maxTemperature: temperatures.length ? Math.max(...temperatures) : details.air_temperature,
         humidity: details.relative_humidity ?? null,
         windSpeed: details.wind_speed ?? null,
+        windDirection: details.wind_from_direction ?? null,
+        pressure: details.air_pressure_at_sea_level ?? null,
+        precipitationNextHour: current.data?.next_1_hours?.details?.precipitation_amount ?? null,
         symbolCode,
         observedAt: current.time ?? null,
       },

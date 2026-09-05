@@ -1,6 +1,6 @@
 "use client";
 
-import { LocateFixed, RefreshCw } from "lucide-react";
+import { CloudRain, Droplets, Gauge, LocateFixed, RefreshCw, Wind } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const LOCATION_KEY = "mercury-weather-location-v1";
@@ -14,10 +14,20 @@ type WeatherLocation = typeof DEFAULT_LOCATION;
 
 type WeatherResult = {
   temperature: number;
+  minTemperature: number;
+  maxTemperature: number;
   humidity: number | null;
   windSpeed: number | null;
+  windDirection: number | null;
+  pressure: number | null;
+  precipitationNextHour: number | null;
   symbolCode: string;
 };
+
+function windDirection(degrees: number | null) {
+  if (degrees === null || !Number.isFinite(degrees)) return "";
+  return ["N", "NE", "L", "SE", "S", "SO", "O", "NO"][Math.round(degrees / 45) % 8];
+}
 
 function weatherPresentation(symbolCode: string) {
   const code = symbolCode.replace(/_(day|night|polartwilight)$/, "");
@@ -105,9 +115,14 @@ export function WeatherCard({ compact = false }: { compact?: boolean }) {
   }
 
   const presentation = weatherPresentation(weather?.symbolCode || "clearsky_day");
-  if (compact) return <details className="max-w-full rounded-xl border border-white/10 bg-[#0c1017] px-3 py-2 text-sm">
-    <summary className="flex min-h-9 cursor-pointer flex-wrap items-center gap-2 text-white/75"><span aria-hidden="true">{weather ? presentation.icon : "🌤️"}</span>{loading ? "Carregando clima…" : weather ? `${Math.round(weather.temperature)}° · ${location.label}` : "Clima indisponível"}</summary>
-    <p className="mt-2 text-white/65">{weather ? presentation.description : message}</p>
+  if (compact) return <details className="group max-w-full rounded-2xl border border-sky-300/15 bg-[linear-gradient(135deg,rgba(29,78,146,0.28),rgba(12,16,23,0.95))] px-4 py-3 text-sm shadow-[0_12px_32px_rgba(0,0,0,0.18)]">
+    <summary className="flex min-h-11 cursor-pointer list-none items-center gap-3 text-white/80 marker:hidden"><span aria-hidden="true" className="text-2xl">{weather ? presentation.icon : "🌤️"}</span><span className="min-w-0 flex-1"><strong className="block truncate text-base text-white">{loading ? "Carregando clima…" : weather ? `${Math.round(weather.temperature)}° · ${presentation.description}` : "Clima indisponível"}</strong><span className="block truncate text-xs text-sky-100/55">{location.label}{weather ? ` · mínima ${Math.round(weather.minTemperature)}° / máxima ${Math.round(weather.maxTemperature)}°` : ""}</span></span><span className="text-xs text-white/40 transition group-open:rotate-180">⌄</span></summary>
+    {weather ? <div className="mt-3 grid grid-cols-2 gap-2 border-t border-white/10 pt-3 text-xs text-white/68">
+      <span className="flex min-h-10 items-center gap-2"><Droplets className="size-4 text-sky-300" />Umidade {weather.humidity === null ? "—" : `${Math.round(weather.humidity)}%`}</span>
+      <span className="flex min-h-10 items-center gap-2"><Wind className="size-4 text-sky-300" />Vento {weather.windSpeed === null ? "—" : `${Math.round(weather.windSpeed)} m/s ${windDirection(weather.windDirection)}`}</span>
+      <span className="flex min-h-10 items-center gap-2"><CloudRain className="size-4 text-sky-300" />Próx. hora {weather.precipitationNextHour === null ? "—" : `${weather.precipitationNextHour.toLocaleString("pt-BR")} mm`}</span>
+      <span className="flex min-h-10 items-center gap-2"><Gauge className="size-4 text-sky-300" />Pressão {weather.pressure === null ? "—" : `${Math.round(weather.pressure)} hPa`}</span>
+    </div> : <p className="mt-3 border-t border-white/10 pt-3 text-white/65">{message}</p>}
     <button type="button" onClick={useCurrentLocation} className="mt-2 min-h-11 text-[#a8c8ff]">Usar minha localização</button>
     <a href="https://www.met.no/en" target="_blank" rel="noreferrer" className="block pb-2 text-xs text-white/55">Dados: MET Norway</a>
     {message && weather && <p className="text-xs text-white/60">{message}</p>}
@@ -125,8 +140,10 @@ export function WeatherCard({ compact = false }: { compact?: boolean }) {
               <p className="mt-1 text-[38px] font-black tracking-[-0.05em]">{Math.round(weather.temperature)}°</p>
               <p className="text-sm text-white/58">{presentation.description}</p>
               <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-white/38">
+                <span>Mín. {Math.round(weather.minTemperature)}° · Máx. {Math.round(weather.maxTemperature)}°</span>
                 {weather.humidity !== null && <span>Umidade {Math.round(weather.humidity)}%</span>}
                 {weather.windSpeed !== null && <span>Vento {Math.round(weather.windSpeed)} m/s</span>}
+                {weather.precipitationNextHour !== null && <span>Chuva na próxima hora {weather.precipitationNextHour.toLocaleString("pt-BR")} mm</span>}
               </div>
             </>
           ) : (
