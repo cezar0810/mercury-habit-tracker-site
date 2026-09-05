@@ -303,6 +303,19 @@ export function MercuryWebApp() {
     }));
   }, []);
 
+  // A hora local e os dados do navegador só existem no cliente. Renderizar
+  // uma moldura estável até a leitura evita texto diferente entre SSR e React.
+  if (!hydrated) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-black text-white">
+        <div className="flex items-center gap-3 text-sm text-white/60">
+          <img src="/mercury-app-icon.png" alt="Mercury" className="size-10 rounded-xl" />
+          Preparando seu Mercury…
+        </div>
+      </main>
+    );
+  }
+
   let screen = (
     <HabitsScreen
       data={data}
