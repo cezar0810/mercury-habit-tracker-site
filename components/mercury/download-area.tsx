@@ -17,14 +17,13 @@ export function DownloadArea() {
           />
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#4b8cff]">
-              Mercury para Android
+              Mercury no seu celular
             </p>
             <h2 className="mt-1 text-[27px] font-bold tracking-[-0.035em]">
               Leve seus hábitos com você
             </h2>
             <p className="mt-2 text-[15px] leading-6 text-white/55">
-              Baixe a versão mais recente do Mercury para Android, com
-              notificações e funcionamento no celular.
+              Instale o APK no Android ou adicione a versão web à Tela de Início do iPhone.
             </p>
           </div>
         </div>
@@ -50,7 +49,7 @@ export function DownloadArea() {
 
         <details className="group mt-5 rounded-[22px] border border-white/[0.09] bg-white/[0.025] p-5">
           <summary className="cursor-pointer list-none font-semibold marker:hidden">
-            Não sei como instalar
+            Como instalar o APK no Android
             <ChevronRight className="float-right size-5 transition group-open:rotate-90" />
           </summary>
           <ol className="mt-4 space-y-3 border-t border-white/[0.08] pt-4 text-sm leading-6 text-white/58">

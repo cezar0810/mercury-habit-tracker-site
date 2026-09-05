@@ -6,102 +6,85 @@ import { runInNewContext } from "node:vm";
 import ts from "typescript";
 
 const require = createRequire(import.meta.url);
-
 async function loadSource(relativePath, aliases = {}) {
   const source = await readFile(new URL(relativePath, import.meta.url), "utf8");
-  const { outputText } = ts.transpileModule(source, {
-    compilerOptions: {
-      module: ts.ModuleKind.CommonJS,
-      target: ts.ScriptTarget.ES2022,
-    },
-  });
+  const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } });
   const compiledModule = { exports: {} };
-  runInNewContext(`(function(module, exports, require) { ${outputText}\n})`)(
-    compiledModule,
-    compiledModule.exports,
-    (name) => aliases[name] ?? require(name),
-  );
+  runInNewContext(`(function(module, exports, require) { ${outputText}\n})`)(compiledModule, compiledModule.exports, name => aliases[name] ?? require(name));
   return compiledModule.exports;
 }
+const recognition = await loadSource("../components/mercury/habit-recognition.ts");
+const state = await loadSource("../components/mercury/state.ts", { "./habit-recognition": recognition });
+const storage = await loadSource("../components/mercury/mercury-storage.ts", { "./state": state });
+const routine = await loadSource("../components/mercury/routine.ts", { "./state": state, "./habit-recognition": recognition });
+const clean = value => JSON.parse(JSON.stringify(value));
 
-const state = await loadSource("../components/mercury/state.ts");
-const storage = await loadSource("../components/mercury/mercury-storage.ts", {
-  "./state": state,
+test("reconhece somente hábitos com intenção clara", () => {
+  assert.equal(recognition.recognizeHabit("Academia"), "workout");
+  assert.equal(recognition.recognizeHabit("Fazer musculação"), "workout");
+  assert.equal(recognition.recognizeHabit("Beber água"), "water");
+  assert.equal(recognition.recognizeHabit("Regar as plantas com água"), "none");
+  assert.equal(recognition.recognizeHabit("Estudar treino de programação"), "none");
 });
 
-function clean(value) {
-  return JSON.parse(JSON.stringify(value));
-}
-
-test("criar um treino gera imediatamente um hábito com emoji", () => {
-  const initial = state.cleanMercuryData({
-    name: "Cezar",
-    habits: [{ id: "manual", title: "Ler", emoji: "📚" }],
-  });
-  const synced = storage.withSyncedWorkouts(initial, [
-    { id: "abc", name: "Peito e tríceps" },
-  ]);
-
-  assert.deepEqual(clean(synced.habits), [
-    { id: "manual", title: "Ler", emoji: "📚" },
-    {
-      id: "workout-habit-abc",
-      title: "Treino: Peito e tríceps",
-      emoji: "🏋️",
-      source: "workout",
-      sourceId: "abc",
-    },
-  ]);
-});
-
-test("concluir um treino marca automaticamente o hábito naquele dia", () => {
-  const initial = state.cleanMercuryData({ name: "Cezar" });
-  const completed = storage.withCompletedWorkout(
-    initial,
-    { id: "abc", name: "Treino A" },
-    "2026-09-04",
-  );
-
-  assert.equal(completed.completions["2026-09-04"]["workout-habit-abc"], true);
-  assert.equal(completed.habits[0].emoji, "🏋️");
-});
-
-test("apagar uma ficha remove somente o hábito sincronizado", () => {
-  const initial = state.cleanMercuryData({
-    habits: [
-      { id: "manual", title: "Estudar", emoji: "🎓" },
-      {
-        id: "workout-habit-abc",
-        title: "Treino A",
-        emoji: "🏋️",
-        source: "workout",
-        sourceId: "abc",
-      },
-    ],
-    completions: {
-      "2026-09-04": { manual: true, "workout-habit-abc": true },
-    },
-  });
-  const synced = storage.withSyncedWorkouts(initial, []);
-
-  assert.deepEqual(clean(synced.habits), [
-    { id: "manual", title: "Estudar", emoji: "🎓" },
-  ]);
-  assert.deepEqual(clean(synced.completions["2026-09-04"]), { manual: true });
-});
-
-test("migra hábitos antigos e soma a água do dia", () => {
+test("migra dados antigos sem apagar marcações e inicia o relatório hoje", () => {
   const migrated = state.cleanMercuryData({
-    habits: [{ id: "corrida", title: "Corrida" }],
-    waterGoalMl: 2500,
-    waterEntriesByDay: {
-      "2026-09-04": [
-        { id: "a", amountMl: 250, recordedAt: "2026-09-04T10:00:00Z" },
-        { id: "b", amountMl: 500, recordedAt: "2026-09-04T12:00:00Z" },
-      ],
-    },
+    name: "Cezar",
+    habits: [{ id: "agua", title: "Beber água", emoji: "💧" }],
+    completions: { "2026-09-01": { agua: true } },
   });
+  assert.equal(migrated.schemaVersion, 2);
+  assert.equal(migrated.habits[0].link, "water");
+  assert.equal(migrated.completions["2026-09-01"].agua, true);
+  assert.match(migrated.trackingSince, /^\d{4}-\d{2}-\d{2}$/);
+});
 
-  assert.equal(migrated.habits[0].emoji, "🏃");
-  assert.equal(state.waterTotalForDay(migrated, "2026-09-04"), 750);
+test("água e academia atualizam hábitos ligados sem dupla contagem", () => {
+  const data = state.cleanMercuryData({
+    schemaVersion: 2, trackingSince: "2026-09-01", waterGoalMl: 500,
+    waterGoalHistory: [{ from: "2026-09-01", goalMl: 500 }],
+    habits: [
+      { id: "agua", title: "Beber água", emoji: "💧", link: "water", createdOn: "2026-09-01", scheduleHistory: [{ from: "2026-09-01", weekdays: [0,1,2,3,4,5,6] }] },
+      { id: "academia", title: "Academia", emoji: "🏋️", link: "workout", createdOn: "2026-09-01", scheduleHistory: [{ from: "2026-09-01", weekdays: [1] }] },
+      { id: "ficha", title: "Treino A", emoji: "🏋️", source: "workout", sourceId: "a", createdOn: "2026-09-01", scheduleHistory: [{ from: "2026-09-01", weekdays: [1] }] },
+    ],
+    waterEntriesByDay: { "2026-09-07": [{ id: "copo", amountMl: 500, recordedAt: "2026-09-07T10:00:00Z" }] },
+    workoutCompletionsByDay: { "2026-09-07": ["a"] },
+  });
+  assert.equal(routine.habitIsComplete(data, data.habits[0], "2026-09-07"), true);
+  assert.equal(routine.habitIsComplete(data, data.habits[1], "2026-09-07"), true);
+  const plan = routine.dayPlan(data, "2026-09-07");
+  assert.equal(plan.filter(item => item.link === "workout").length, 1);
+  assert.equal(plan.filter(item => item.done).length, 2);
+});
+
+test("alterar frequência e ligação não muda o passado", () => {
+  let habit = { id:"ler", title:"Ler", emoji:"📚", link:"none", createdOn:"2026-09-01", scheduleHistory:[{ from:"2026-09-01", weekdays:[1,2,3,4,5] }], linkHistory:[{ from:"2026-09-01", link:"none" }] };
+  habit = routine.scheduleHabit(habit, [6], "2026-09-05");
+  habit = routine.setHabitLink(habit, "water", "2026-09-05");
+  assert.equal(routine.habitIsScheduled(habit, "2026-09-04"), true);
+  assert.equal(routine.habitLink(habit, "2026-09-04"), "none");
+  assert.equal(routine.habitIsScheduled(habit, "2026-09-05"), true);
+  assert.equal(routine.habitLink(habit, "2026-09-05"), "water");
+});
+
+test("criar, concluir e apagar treino preserva o histórico", () => {
+  const initial = state.cleanMercuryData({ schemaVersion:2, trackingSince:"2026-09-01", habits:[{ id:"manual", title:"Ler", emoji:"📚" }] });
+  const synced = storage.withSyncedWorkouts(initial, [{ id:"abc", name:"Peito e tríceps" }]);
+  assert.equal(synced.habits.at(-1).sourceId, "abc");
+  const completed = storage.withCompletedWorkout(synced, { id:"abc", name:"Peito e tríceps" }, "2026-09-04");
+  assert.deepEqual(clean(completed.workoutCompletionsByDay["2026-09-04"]), ["abc"]);
+  const removed = storage.withSyncedWorkouts(completed, []);
+  assert.equal(removed.habits.find(habit => habit.sourceId === "abc").archivedOn !== undefined, true);
+  assert.deepEqual(clean(removed.workoutCompletionsByDay["2026-09-04"]), ["abc"]);
+});
+
+test("relatório ignora futuro e usa medidas separadas", () => {
+  const data = state.cleanMercuryData({ schemaVersion:2, trackingSince:"2026-09-01", habits:[{ id:"ler", title:"Ler", emoji:"📚", createdOn:"2026-09-01", link:"none", scheduleHistory:[{ from:"2026-09-01", weekdays:[1,2,3,4,5,6,0] }] }], completions:{ "2026-09-04":{ ler:true } }, focusMinutesByDay:{ "2026-09-04":25 } });
+  const report = routine.weekReport(data, "2026-09-04", "2026-09-04");
+  assert.equal(report.availableDays.length, 4);
+  assert.equal(report.planned, 4);
+  assert.equal(report.done, 1);
+  assert.equal(report.focusMinutes, 25);
+  assert.equal(report.rows.filter(row => row.day > "2026-09-04").every(row => row.rate === null), true);
 });

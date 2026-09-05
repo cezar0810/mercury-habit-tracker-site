@@ -11,15 +11,20 @@ import {
 } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
 import { CheckBox } from "./controls";
+import { HabitOptions, type HabitOptionsChange } from "./habit-options";
+import { recognizeHabit, habitLinkLabels } from "./habit-recognition";
+import { habitIsComplete, habitIsScheduled, habitLink } from "./routine";
 import {
   dateKey,
   daysForMonth,
   monthLabel,
   weekdayLabel,
   type Habit,
+  type MercuryData,
 } from "./state";
 
 export function HabitsScreen({
+  data,
   habits,
   completions,
   viewMonth,
@@ -30,7 +35,9 @@ export function HabitsScreen({
   onDeleteHabit,
   onMoveHabit,
   onToggle,
+  onOptions,
 }: {
+  data: MercuryData;
   habits: Habit[];
   completions: Record<string, Record<string, boolean>>;
   viewMonth: Date;
@@ -41,6 +48,7 @@ export function HabitsScreen({
   onDeleteHabit: (id: string) => void;
   onMoveHabit: (id: string, direction: -1 | 1) => void;
   onToggle: (habitId: string, day: string) => void;
+  onOptions: (id: string, change: HabitOptionsChange) => void;
 }) {
   const [newHabit, setNewHabit] = useState("");
   const [notice, setNotice] = useState("");
@@ -49,10 +57,10 @@ export function HabitsScreen({
   const completed = days.reduce(
     (total, day) =>
       total +
-      habits.filter((habit) => completions[dateKey(day)]?.[habit.id]).length,
+      habits.filter((habit) => dateKey(day) <= dateKey(new Date()) && dateKey(day) >= data.trackingSince && habitIsScheduled(habit, dateKey(day)) && habitIsComplete(data, habit, dateKey(day))).length,
     0,
   );
-  const possible = days.length * habits.length;
+  const possible = days.reduce((total, day) => total + habits.filter(habit => dateKey(day) <= dateKey(new Date()) && dateKey(day) >= data.trackingSince && habitIsScheduled(habit, dateKey(day))).length, 0);
   const percentage = possible ? Math.round((completed / possible) * 100) : 0;
 
   const addHabit = (event: FormEvent) => {
@@ -116,7 +124,7 @@ export function HabitsScreen({
         <div>
           <p className="text-[21px] font-bold">{percentage}% neste mês</p>
           <p className="mt-1 text-[14px] leading-5 text-white/55">
-            {completed} marcações concluídas de {possible || 0} possíveis.
+            {completed} marcações concluídas de {possible || 0} previstas até hoje.
           </p>
         </div>
       </section>
@@ -144,6 +152,7 @@ export function HabitsScreen({
           <Plus className="size-6" />
         </button>
       </form>
+      <p className="mt-2 text-sm text-white/60">{recognizeHabit(newHabit) !== "none" ? `Reconhecido: ${habitLinkLabels[recognizeHabit(newHabit)]}. A conclusão será sincronizada.` : "Toque no emoji de um hábito para escolher o ícone, a ligação e os dias."}</p>
       {notice && <p className="mt-2 text-xs text-[#8db8ff]">{notice}</p>}
 
       {habits.length === 0 ? (
@@ -217,9 +226,7 @@ export function HabitsScreen({
                         <ChevronsDown className="size-3.5" />
                       </button>
                     </div>
-                    <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-white/[0.05] text-base" aria-hidden="true">
-                      {habit.emoji}
-                    </span>
+                    <HabitOptions habit={habit} onChange={change => onOptions(habit.id, change)} />
                     <input
                       value={habit.title}
                       onChange={(event) => onRenameHabit(habit.id, event.target.value)}
@@ -229,16 +236,17 @@ export function HabitsScreen({
                       aria-label={(habit.source === "workout" ? "Hábito sincronizado " : "Editar nome de ") + habit.title}
                       className="min-w-0 flex-1 bg-transparent text-[14px] font-semibold outline-none placeholder:text-white/30 focus:text-[#8db8ff] read-only:cursor-default read-only:text-white/78"
                     />
-                    {habit.source === "workout" ? (
+                    {habitLink(habit) !== "none" && (
                       <a
-                        href="/treinos"
-                        aria-label={"Abrir treino " + habit.title}
-                        title="Sincronizado com Treinos"
+                        href={habitLink(habit) === "water" ? "/water" : "/treinos"}
+                        aria-label={"Abrir " + habitLinkLabels[habitLink(habit)]}
+                        title={"Ligado a " + habitLinkLabels[habitLink(habit)]}
                         className="grid size-8 place-items-center rounded-lg text-[#6ca0ff] transition hover:bg-[#347cf6]/10"
                       >
                         <span aria-hidden="true" className="text-sm">↗</span>
                       </a>
-                    ) : (
+                    )}
+                    {habit.source !== "workout" && (
                       <button
                         type="button"
                         onClick={() => onDeleteHabit(habit.id)}
@@ -256,12 +264,26 @@ export function HabitsScreen({
                         key={key}
                         className="grid place-items-center border-l border-white/[0.1]"
                       >
-                        <CheckBox
-                          compact
-                          checked={Boolean(completions[key]?.[habit.id])}
-                          onClick={() => onToggle(habit.id, key)}
-                          label={"Marcar " + habit.title + " em " + key}
-                        />
+                        {(habitIsScheduled(habit, key) || habitIsComplete(data, habit, key)) && key <= dateKey(new Date()) ? (
+                          habitLink(habit, key) === "none" ? (
+                            <CheckBox
+                              compact
+                              checked={habitIsComplete(data, habit, key)}
+                              onClick={() => onToggle(habit.id, key)}
+                              label={"Marcar " + habit.title + " em " + key}
+                            />
+                          ) : habitIsComplete(data, habit, key) ? (
+                            <span
+                              className="grid size-7 place-items-center rounded-full bg-[#347cf6] text-sm font-bold text-white"
+                              title="Concluído pela atividade vinculada"
+                              aria-label={habit.title + " concluído em " + key + " pela atividade vinculada"}
+                            >
+                              ✓
+                            </span>
+                          ) : (
+                            <span className="text-white/30" title="Aguardando a atividade vinculada">—</span>
+                          )
+                        ) : <span className="text-white/30" title={key > dateKey(new Date()) ? "Dia futuro" : "Sem atividade prevista"}>—</span>}
                       </div>
                     );
                   })}

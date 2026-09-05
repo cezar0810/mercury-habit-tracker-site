@@ -2,9 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  bannerDocument,
   bannerUnits,
-  contentAdFits,
+  contentAdPlacement,
   sidebarAdFits,
   type BannerPlacement,
 } from "./adsterra-config";
@@ -47,7 +46,7 @@ export function AdsterraBannerFrame({ placement }: { placement: BannerPlacement 
       data-ad-placement={placement}
       width={unit.width}
       height={unit.height}
-      srcDoc={bannerDocument(placement)}
+      src={`/api/banner/${placement}`}
       referrerPolicy="strict-origin-when-cross-origin"
       sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
       style={{ display: "block", width: unit.width, height: unit.height, border: 0, margin: "0 auto" }}
@@ -73,11 +72,12 @@ export function AdsterraSidebarAd() {
 
 export function AdsterraContentAd() {
   const { ref, width } = useSlotSize();
+  const placement = contentAdPlacement(width);
   return (
-    <aside aria-label="Publicidade abaixo do conteúdo" className="w-full min-w-0">
+    <aside aria-label="Publicidade abaixo do conteúdo" className="relative left-1/2 w-screen min-w-0 -translate-x-1/2 sm:left-auto sm:w-full sm:translate-x-0">
       <AdLabel />
       <div ref={ref} className="min-w-0">
-        {contentAdFits(width) && <AdsterraBannerFrame placement="content" />}
+        {placement && <AdsterraBannerFrame key={placement} placement={placement} />}
       </div>
     </aside>
   );

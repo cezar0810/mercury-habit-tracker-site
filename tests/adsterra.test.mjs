@@ -19,7 +19,7 @@ async function loadSource(relativePath, aliases = {}) {
     },
   });
   const compiledModule = { exports: {} };
-  runInNewContext(`(function(module, exports, require) { ${outputText}\n})`)(
+  runInNewContext(`(function(module, exports, require) { ${outputText}\n})`, { Response })(
     compiledModule, compiledModule.exports, (name) => aliases[name] ?? require(name),
   );
   return compiledModule.exports;
@@ -73,7 +73,7 @@ test("cada banner mantém dimensões, script e atOptions em documento próprio",
     assert.doesNotMatch(document, /setInterval|setTimeout|window\.open|profitableratecpmnetwork\.com\/q7/);
     const html = renderToStaticMarkup(React.createElement(ads.AdsterraBannerFrame, { placement }));
     assert.match(html, new RegExp(`width="${unit.width}" height="${unit.height}"`));
-    assert.match(html, /srcDoc=/);
+    assert.match(html, new RegExp(`src="/api/banner/${placement}"`));
     assert.match(html, /title="Publicidade/);
     assert.doesNotMatch(html, /loading="lazy"|transform:|scale\(/);
   }
@@ -89,15 +89,24 @@ test("HTML inicial não dispara anúncios antes de conhecer a largura", () => {
   }
 });
 
-test("/anuncio é compacto, sem tracker, download ou cadastro", async () => {
-  const page = await loadSource("../app/anuncio/page.tsx", {
-    "@/components/mercury/adsterra-banner": ads,
+test("/anuncio entrega o banner diretamente para o WebView", async () => {
+  const route = await loadSource("../app/anuncio/route.ts", {
+    "@/components/mercury/adsterra-config": config,
   });
-  const html = renderToStaticMarkup(React.createElement(page.default));
-  assert.equal(page.metadata.robots.index, false);
-  assert.match(html, /min-h-\[70px\]/);
+  const response = route.GET();
+  const html = await response.text();
+  assert.equal(response.headers.get("cache-control"), "no-store");
   assert.match(html, /PUBLICIDADE/);
+  assert.match(html, new RegExp(config.bannerUnits.app.key));
   assert.doesNotMatch(html, /Seu espaço|Como podemos te chamar|Baixar|<nav|<form/);
+});
+
+test("banner do conteúdo troca para 320x50 no celular", () => {
+  assert.equal(config.contentAdPlacement(0), null);
+  assert.equal(config.contentAdPlacement(319), null);
+  assert.equal(config.contentAdPlacement(320), "app");
+  assert.equal(config.contentAdPlacement(467), "app");
+  assert.equal(config.contentAdPlacement(468), "content");
 });
 
 test("tracker tem um lateral e um responsivo, preservando dados e download", async () => {

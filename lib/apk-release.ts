@@ -38,8 +38,10 @@ export async function loadApkRelease(
     });
     if (response.status === 404) return { status: "unpublished" };
     if (!response.ok) return { status: "unavailable" };
-    const release = await response.json();
-    if (!release || !Array.isArray(release.assets)) return { status: "unavailable" };
+    const raw: unknown = await response.json();
+    if (!raw || typeof raw !== "object") return { status: "unavailable" };
+    const release = raw as Record<string, unknown>;
+    if (!Array.isArray(release.assets)) return { status: "unavailable" };
     if (release.draft || release.prerelease) return { status: "unpublished" };
     const asset = release.assets.find((item: { name?: string } | null) => item?.name === assetName);
     if (!asset || asset.state !== "uploaded") return { status: "unpublished" };

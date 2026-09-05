@@ -18,9 +18,14 @@ export function readMercuryData() {
   if (typeof window === "undefined") return { ...blankMercuryData };
   try {
     const raw = window.localStorage.getItem(MERCURY_STORAGE_KEY);
-    return cleanMercuryData(raw ? JSON.parse(raw) : null);
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (raw && parsed?.schemaVersion !== 2) {
+      const backupKey = "mercury-backup-before-routine-v2";
+      try { if (!window.localStorage.getItem(backupKey)) window.localStorage.setItem(backupKey, raw); } catch { /* Read still works when backup storage is full. */ }
+    }
+    return cleanMercuryData(parsed);
   } catch {
-    return { ...blankMercuryData };
+    return cleanMercuryData(null);
   }
 }
 
@@ -40,13 +45,18 @@ export function workoutHabitId(workoutId: string) {
   return `workout-habit-${workoutId}`;
 }
 
-function workoutHabit(workout: WorkoutIdentity): Habit {
+function workoutHabit(workout: WorkoutIdentity, previous?: Habit, day = dateKey(new Date())): Habit {
   return {
+    ...previous,
     id: workoutHabitId(workout.id),
     title: workoutHabitTitle(workout.name),
-    emoji: "🏋️",
+    emoji: previous?.emojiMode === "custom" ? previous.emoji : "🏋️",
     source: "workout",
     sourceId: workout.id,
+    link: "workout",
+    createdOn: previous?.createdOn || day,
+    archivedOn: undefined,
+    scheduleHistory: previous?.scheduleHistory || [{ from: day, weekdays: [] }],
   };
 }
 
@@ -61,14 +71,9 @@ export function withSyncedWorkouts(
       .map((habit) => habit.id),
   );
   const manualHabits = data.habits.filter((habit) => habit.source !== "workout");
-  const syncedHabits = workouts.map(workoutHabit);
-  const completions: MercuryData["completions"] = {};
-  Object.entries(data.completions).forEach(([day, values]) => {
-    completions[day] = Object.fromEntries(
-      Object.entries(values).filter(([habitId]) => !removedHabitIds.has(habitId)),
-    );
-  });
-  return { ...data, habits: [...manualHabits, ...syncedHabits], completions };
+  const syncedHabits = workouts.map(workout => workoutHabit(workout, data.habits.find(habit => habit.sourceId === workout.id)));
+  const archived = data.habits.filter(habit => removedHabitIds.has(habit.id)).map(habit => ({ ...habit, archivedOn: habit.archivedOn || dateKey(new Date()) }));
+  return { ...data, habits: [...manualHabits, ...syncedHabits, ...archived] };
 }
 
 export function withCompletedWorkout(
@@ -76,13 +81,17 @@ export function withCompletedWorkout(
   workout: WorkoutIdentity,
   day = dateKey(new Date()),
 ) {
-  const habit = workoutHabit(workout);
+  const habit = workoutHabit(workout, data.habits.find(item => item.sourceId === workout.id), day);
   const habits = data.habits.some((item) => item.id === habit.id)
     ? data.habits.map((item) => item.id === habit.id ? habit : item)
     : [...data.habits, habit];
   return {
     ...data,
     habits,
+    workoutCompletionsByDay: {
+      ...data.workoutCompletionsByDay,
+      [day]: [...new Set([...(data.workoutCompletionsByDay[day] || []), workout.id])],
+    },
     completions: {
       ...data.completions,
       [day]: { ...(data.completions[day] || {}), [habit.id]: true },

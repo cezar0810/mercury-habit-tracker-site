@@ -1,0 +1,12 @@
+{
+  "id": "/",
+  "name": "Mercury Habit Tracker",
+  "short_name": "Mercury",
+  "lang": "pt-BR",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": [{ "src": "/mercury-app-icon.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" }]
+}

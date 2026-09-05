@@ -29,11 +29,17 @@ export function contentAdFits(availableWidth: number) {
   return availableWidth >= bannerUnits.content.width;
 }
 
+export function contentAdPlacement(availableWidth: number): BannerPlacement | null {
+  if (availableWidth >= bannerUnits.content.width) return "content";
+  if (availableWidth >= bannerUnits.app.width) return "app";
+  return null;
+}
+
 export function sidebarAdFits(availableWidth: number, viewportWidth: number) {
   return availableWidth >= 300 && viewportWidth >= 1024;
 }
 
-export function bannerDocument(placement: BannerPlacement) {
+export function bannerDocument(placement: BannerPlacement, label = false) {
   const unit = bannerUnits[placement];
   // Cada documento tem seu próprio atOptions. Os scripts executam na ordem
   // original do fornecedor, sem disputar uma variável global no React.
@@ -42,10 +48,12 @@ export function bannerDocument(placement: BannerPlacement) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Publicidade ${unit.width}×${unit.height}</title>
-<style>html,body{margin:0;padding:0;width:${unit.width}px;height:${unit.height}px;background:transparent}iframe{border:0;display:block}#ad-status{margin:0;font:12px Arial,sans-serif;color:#aaa;text-align:center}</style>
+<meta name="robots" content="noindex,nofollow">
+<style>html,body{margin:0;padding:0;min-width:${unit.width}px;background:${label ? "#000" : "transparent"};color:#aaa}body{width:${unit.width}px;margin:auto}iframe{border:0;display:block}.ad-label{height:20px;margin:0;font:10px/20px Arial,sans-serif;text-align:center;letter-spacing:1px}#ad-status{margin:0;font:12px/20px Arial,sans-serif;color:#aaa;text-align:center}</style>
 </head><body>
+${label ? '<p class="ad-label">PUBLICIDADE</p>' : ""}
 <p id="ad-status" role="status" hidden>Publicidade indisponível no momento.</p>
 <script>atOptions = ${JSON.stringify({ key: unit.key, format: "iframe", height: unit.height, width: unit.width, params: {} })};</script>
-<script src="${unit.scriptUrl}" data-cfasync="false" onerror="document.getElementById('ad-status').hidden=false"></script>
+<script src="${unit.scriptUrl}" data-cfasync="false" onerror="document.getElementById('ad-status').hidden=false; if(window.MercuryAds) window.MercuryAds.postMessage('unavailable');"></script>
 </body></html>`;
 }

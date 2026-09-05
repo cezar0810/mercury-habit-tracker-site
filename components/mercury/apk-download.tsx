@@ -5,6 +5,7 @@ import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { appRelease } from "@/lib/app-release";
 import { formatApkSize, loadApkRelease, type ApkReleaseInfo } from "@/lib/apk-release";
+import { InstallationHelp, useInstallationContext } from "./installation-help";
 
 let cached: { value: ApkReleaseInfo; expiresAt: number } | undefined;
 let pending: Promise<ApkReleaseInfo> | undefined;
@@ -23,6 +24,7 @@ function currentApk(): Promise<ApkReleaseInfo> {
 }
 
 export function ApkDownload({ label, className }: { label: string; className?: string }) {
+  const { ios } = useInstallationContext();
   const [info, setInfo] = useState<ApkReleaseInfo | null>(null);
   useEffect(() => {
     let active = true;
@@ -49,7 +51,9 @@ export function ApkDownload({ label, className }: { label: string; className?: s
 
   return (
     <div className={className}>
-      {missing ? (
+      {ios ? (
+        <a href="#instalar-no-iphone" className="flex min-h-14 items-center justify-center rounded-2xl bg-[#347cf6] px-5 py-4 text-center text-base font-semibold text-white">Adicionar ao iPhone</a>
+      ) : missing ? (
         <Button disabled className="h-auto min-h-14 w-full whitespace-normal rounded-2xl px-5 py-4 text-base font-bold">
           APK ainda não disponível
         </Button>
@@ -60,7 +64,8 @@ export function ApkDownload({ label, className }: { label: string; className?: s
           </a>
         </Button>
       )}
-      <p role="status" aria-live="polite" className="mt-3 text-center text-sm text-white/60">{sizeLabel}</p>
+      {!ios && <p role="status" aria-live="polite" className="mt-3 text-center text-sm text-white/60">{sizeLabel}</p>}
+      <InstallationHelp />
     </div>
   );
 }

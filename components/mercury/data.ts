@@ -1,5 +1,6 @@
 import {
   BookOpen,
+  ChartNoAxesCombined,
   CalendarDays,
   Circle,
   Coffee,
@@ -15,13 +16,13 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-export type Tab = "inicio" | "habitos" | "planejar" | "foco";
+export type Tab = "inicio" | "habitos" | "planejar" | "rotina" | "foco" | "progresso";
 
 export const tabs: Array<{ id: Tab; label: string; icon: LucideIcon }> = [
-  { id: "inicio", label: "Início", icon: Home },
-  { id: "habitos", label: "Hábitos", icon: Grid2X2 },
-  { id: "planejar", label: "Planejar", icon: CalendarDays },
+  { id: "inicio", label: "Hoje", icon: Home },
+  { id: "rotina", label: "Rotina", icon: Grid2X2 },
   { id: "foco", label: "Foco", icon: TimerReset },
+  { id: "progresso", label: "Progresso", icon: ChartNoAxesCombined },
 ];
 
 export const habitRows = [

@@ -27,6 +27,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { BottomNavigation } from "./controls";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ProgressScreen } from "./progress-screen";
+import { activeHabits, allWeekdays, habitLink, scheduleHabit, setHabitLink } from "./routine";
+import { recognizeHabit } from "./habit-recognition";
+import type { HabitOptionsChange } from "./habit-options";
 import { AdsterraContentAd, AdsterraSidebarAd } from "./adsterra-banner";
 import { DownloadArea } from "./download-area";
 import { FocusScreen } from "./focus-screen";
@@ -54,14 +59,17 @@ type DeleteRequest =
   | { type: "task"; id: string; title: string };
 
 export function MercuryWebApp() {
-  const [tab, setTab] = useState<Tab>("habitos");
+  const [tab, setTab] = useState<Tab>("inicio");
+  const [routineView, setRoutineView] = useState("habitos");
   const [data, setData] = useState<MercuryData>({ ...blankMercuryData });
   const [hydrated, setHydrated] = useState(false);
+  const [, setCalendarDay] = useState(() => dateKey(new Date()));
   const [viewMonth, setViewMonth] = useState(
     () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   );
   const [plannerDate, setPlannerDate] = useState(() => dateKey(new Date()));
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [installOnly, setInstallOnly] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const [goalDraft, setGoalDraft] = useState("");
   const [genderDraft, setGenderDraft] = useState("");
@@ -72,12 +80,16 @@ export function MercuryWebApp() {
 
   useEffect(() => {
     setData(readMercuryData());
+    setInstallOnly(window.location.hash === "#download");
     setHydrated(true);
     const handleStorage = (event: StorageEvent) => {
       if (event.key === MERCURY_STORAGE_KEY) setData(readMercuryData());
     };
     window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
+    const refresh = () => { setData(readMercuryData()); setCalendarDay(dateKey(new Date())); };
+    window.addEventListener("pageshow", refresh);
+    const clock = window.setInterval(() => setCalendarDay(dateKey(new Date())), 30_000);
+    return () => { window.removeEventListener("storage", handleStorage); window.removeEventListener("pageshow", refresh); window.clearInterval(clock); };
   }, []);
 
   useEffect(() => {
@@ -117,7 +129,7 @@ export function MercuryWebApp() {
 
   const addHabit = (title: string) => {
     const nextTitle = title.trim();
-    const manualHabitCount = data.habits.filter((habit) => habit.source !== "workout").length;
+    const manualHabitCount = activeHabits(data).filter((habit) => habit.source !== "workout").length;
     if (!nextTitle || manualHabitCount >= 15) return false;
     setData((current) => ({
       ...current,
@@ -127,6 +139,12 @@ export function MercuryWebApp() {
           id: createId("habit"),
           title: nextTitle.slice(0, 45),
           emoji: habitEmoji(nextTitle),
+          emojiMode: "auto",
+          link: recognizeHabit(nextTitle),
+          linkHistory: [{ from: dateKey(new Date()), link: recognizeHabit(nextTitle) }],
+          linkMode: "auto",
+          createdOn: dateKey(new Date()),
+          scheduleHistory: [{ from: dateKey(new Date()), weekdays: allWeekdays }],
         },
       ],
     }));
@@ -138,7 +156,7 @@ export function MercuryWebApp() {
       ...current,
       habits: current.habits.map((habit) =>
         habit.id === id && habit.source !== "workout"
-          ? { ...habit, title: title.slice(0, 45), emoji: habitEmoji(title) }
+          ? { ...setHabitLink(habit, habit.linkMode === "manual" ? habitLink(habit) : recognizeHabit(title), dateKey(new Date())), title: title.slice(0, 45), emoji: habit.emojiMode === "custom" ? habit.emoji : habitEmoji(title) }
           : habit,
       ),
     }));
@@ -148,15 +166,9 @@ export function MercuryWebApp() {
     setData((current) => {
       const habit = current.habits.find((item) => item.id === id);
       if (habit?.source === "workout") return current;
-      const nextCompletions: MercuryData["completions"] = {};
-      Object.entries(current.completions).forEach(([day, values]) => {
-        const { [id]: removed, ...remaining } = values;
-        nextCompletions[day] = remaining;
-      });
       return {
         ...current,
-        habits: current.habits.filter((habit) => habit.id !== id),
-        completions: nextCompletions,
+        habits: current.habits.map(habit => habit.id === id ? { ...habit, archivedOn: dateKey(new Date()) } : habit),
       };
     });
   };
@@ -175,6 +187,12 @@ export function MercuryWebApp() {
   };
 
   const toggleHabit = (habitId: string, day: string) => {
+    if (day > dateKey(new Date())) return;
+    const habit = data.habits.find(item => item.id === habitId);
+    if (habit && habitLink(habit) !== "none") {
+      window.location.href = habitLink(habit) === "water" ? "/water" : "/treinos";
+      return;
+    }
     setData((current) => {
       const today = current.completions[day] || {};
       return {
@@ -185,6 +203,27 @@ export function MercuryWebApp() {
         },
       };
     });
+  };
+
+  const changeHabitOptions = (id: string, change: HabitOptionsChange) => {
+    setData(current => ({ ...current, habits: current.habits.map(habit => {
+      if (habit.id !== id) return habit;
+      let next = { ...habit };
+      if (change.emoji) next = { ...next, emoji: change.emoji, emojiMode: "custom" };
+      if (change.link && habit.source !== "workout") next = { ...setHabitLink(next, change.link, dateKey(new Date())), linkMode: "manual" };
+      if (change.weekdays) next = scheduleHabit(next, change.weekdays, dateKey(new Date()));
+      return next;
+    }) }));
+  };
+
+  const quickWater = (amountMl: number) => {
+    const today = dateKey(new Date());
+    const entry = { id: createId("water"), amountMl, recordedAt: new Date().toISOString() };
+    setData(current => ({ ...current, waterEntriesByDay: { ...current.waterEntriesByDay, [today]: [...(current.waterEntriesByDay[today] || []), entry] } }));
+    return entry.id;
+  };
+  const undoQuickWater = (id: string) => {
+    setData(current => ({ ...current, waterEntriesByDay: Object.fromEntries(Object.entries(current.waterEntriesByDay).map(([day, entries]) => [day, entries.filter(entry => entry.id !== id)])) }));
   };
 
   const addTask = (title: string, period: PlannerPeriod) => {
@@ -266,12 +305,13 @@ export function MercuryWebApp() {
 
   let screen = (
     <HabitsScreen
-      habits={data.habits}
+      data={data}
+      habits={activeHabits(data)}
       completions={data.completions}
       viewMonth={viewMonth}
       onMonthChange={setViewMonth}
       onAddHabit={addHabit}
-      manualHabitCount={data.habits.filter((habit) => habit.source !== "workout").length}
+      manualHabitCount={activeHabits(data).filter((habit) => habit.source !== "workout").length}
       onRenameHabit={renameHabit}
       onDeleteHabit={(id) => {
         const habit = data.habits.find((item) => item.id === id);
@@ -279,27 +319,25 @@ export function MercuryWebApp() {
       }}
       onMoveHabit={moveHabit}
       onToggle={toggleHabit}
+      onOptions={changeHabitOptions}
     />
   );
 
   if (tab === "inicio") {
     screen = (
       <InicioScreen
-        name={data.name || "você"}
-        goal={data.goal}
-        gender={data.gender}
-        characterClass={data.characterClass}
-        habits={data.habits}
-        completions={data.completions}
-        focusMinutesByDay={data.focusMinutesByDay}
-        waterGoalMl={data.waterGoalMl}
-        waterEntriesByDay={data.waterEntriesByDay}
-        onHabits={() => setTab("habitos")}
+        data={data}
+        onRoutine={() => setTab("rotina")}
+        onProgress={() => setTab("progresso")}
+        onHabit={toggleHabit}
+        onTask={toggleTask}
+        onWater={quickWater}
+        onUndoWater={undoQuickWater}
       />
     );
   }
 
-  if (tab === "planejar") {
+  if (tab === "planejar" || (tab === "rotina" && routineView === "planejar")) {
     screen = (
       <PlannerScreen
         selectedDate={plannerDate}
@@ -320,6 +358,13 @@ export function MercuryWebApp() {
   if (tab === "foco") {
     screen = <FocusScreen onWorkComplete={recordWork} />;
   }
+  if (tab === "progresso") screen = <ProgressScreen data={data} />;
+  if (tab === "rotina") screen = <Tabs value={routineView} onValueChange={setRoutineView}>
+    <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+      <TabsList className="h-auto bg-[#11151c] p-1"><TabsTrigger value="habitos" className="min-h-11 text-white/70 data-[state=active]:bg-[#1b3764] data-[state=active]:text-white">Hábitos</TabsTrigger><TabsTrigger value="planejar" className="min-h-11 text-white/70 data-[state=active]:bg-[#1b3764] data-[state=active]:text-white">Planejar</TabsTrigger></TabsList>
+      <a href="/treinos" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/15 px-3 text-sm text-[#a8c8ff]"><Dumbbell className="size-4" />Meus treinos</a>
+    </div><TabsContent value={routineView}>{screen}</TabsContent>
+  </Tabs>;
 
   const confirmDelete = () => {
     if (!deleteRequest) return;
@@ -365,7 +410,7 @@ export function MercuryWebApp() {
             </button>
             <a
               href="#download"
-              aria-label="Ir para download do aplicativo Android"
+              aria-label="Instalar Mercury no celular"
               className="grid size-10 place-items-center rounded-xl bg-[#347cf6] shadow-[0_8px_20px_rgba(52,124,246,0.28)]"
             >
               <Download className="size-4" />
@@ -453,7 +498,7 @@ export function MercuryWebApp() {
       </footer>
 
       <Dialog
-        open={hydrated && !data.name.trim()}
+        open={hydrated && !data.name.trim() && !installOnly}
         onOpenChange={() => undefined}
       >
         <DialogContent
@@ -486,6 +531,7 @@ export function MercuryWebApp() {
             >
               Entrar no Mercury
             </button>
+            <a href="#download" onClick={() => setInstallOnly(true)} className="mt-3 flex min-h-11 items-center justify-center text-sm text-[#a8c8ff]">Quero apenas instalar no celular</a>
           </form>
         </DialogContent>
       </Dialog>

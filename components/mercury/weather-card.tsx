@@ -33,7 +33,7 @@ function weatherPresentation(symbolCode: string) {
   return { icon: night ? "🌙" : "☀️", description: "Céu limpo" };
 }
 
-export function WeatherCard() {
+export function WeatherCard({ compact = false }: { compact?: boolean }) {
   const [location, setLocation] = useState<WeatherLocation>(DEFAULT_LOCATION);
   const [weather, setWeather] = useState<WeatherResult | null>(null);
   const [loading, setLoading] = useState(true);
@@ -105,6 +105,13 @@ export function WeatherCard() {
   }
 
   const presentation = weatherPresentation(weather?.symbolCode || "clearsky_day");
+  if (compact) return <details className="max-w-full rounded-xl border border-white/10 bg-[#0c1017] px-3 py-2 text-sm">
+    <summary className="flex min-h-9 cursor-pointer flex-wrap items-center gap-2 text-white/75"><span aria-hidden="true">{weather ? presentation.icon : "🌤️"}</span>{loading ? "Carregando clima…" : weather ? `${Math.round(weather.temperature)}° · ${location.label}` : "Clima indisponível"}</summary>
+    <p className="mt-2 text-white/65">{weather ? presentation.description : message}</p>
+    <button type="button" onClick={useCurrentLocation} className="mt-2 min-h-11 text-[#a8c8ff]">Usar minha localização</button>
+    <a href="https://www.met.no/en" target="_blank" rel="noreferrer" className="block pb-2 text-xs text-white/55">Dados: MET Norway</a>
+    {message && weather && <p className="text-xs text-white/60">{message}</p>}
+  </details>;
   return (
     <section className="relative min-h-[154px] overflow-hidden rounded-[25px] border border-sky-300/15 bg-[linear-gradient(135deg,rgba(24,88,178,0.3),rgba(12,13,14,0.94)_65%)] p-5">
       <div className="pointer-events-none absolute -right-8 -top-12 size-40 rounded-full bg-sky-400/10 blur-2xl" />

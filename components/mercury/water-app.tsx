@@ -18,6 +18,7 @@ import {
   type MercuryData,
 } from "./state";
 import { readMercuryData, writeMercuryData } from "./mercury-storage";
+import { setWaterGoal } from "./routine";
 
 const QUICK_AMOUNTS = [250, 350, 500];
 
@@ -102,7 +103,7 @@ export function MercuryWaterApp() {
       return;
     }
     const safeGoal = Math.round(goal);
-    persist({ ...data, waterGoalMl: safeGoal });
+    persist(setWaterGoal(data, safeGoal));
     setGoalDraft(String(safeGoal));
     setNotice("Meta diária atualizada.");
   }

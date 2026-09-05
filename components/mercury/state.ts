@@ -1,9 +1,18 @@
+import { recognizeHabit, type HabitLink } from "./habit-recognition";
+
 export type Habit = {
   id: string;
   title: string;
   emoji: string;
   source?: "workout";
   sourceId?: string;
+  link?: HabitLink;
+  linkMode?: "auto" | "manual";
+  emojiMode?: "auto" | "custom";
+  createdOn?: string;
+  archivedOn?: string;
+  scheduleHistory?: Array<{ from: string; weekdays: number[] }>;
+  linkHistory?: Array<{ from: string; link: HabitLink }>;
 };
 
 export type WaterEntry = {
@@ -23,6 +32,8 @@ export type PlannerTask = {
 };
 
 export type MercuryData = {
+  schemaVersion: 2;
+  trackingSince: string;
   name: string;
   goal: string;
   gender: string;
@@ -33,6 +44,8 @@ export type MercuryData = {
   focusMinutesByDay: Record<string, number>;
   waterGoalMl: number;
   waterEntriesByDay: Record<string, WaterEntry[]>;
+  waterGoalHistory: Array<{ from: string; goalMl: number }>;
+  workoutCompletionsByDay: Record<string, string[]>;
 };
 
 export const plannerPeriods: PlannerPeriod[] = [
@@ -43,6 +56,8 @@ export const plannerPeriods: PlannerPeriod[] = [
 ];
 
 export const blankMercuryData: MercuryData = {
+  schemaVersion: 2,
+  trackingSince: "",
   name: "",
   goal: "",
   gender: "",
@@ -53,6 +68,8 @@ export const blankMercuryData: MercuryData = {
   focusMinutesByDay: {},
   waterGoalMl: 2000,
   waterEntriesByDay: {},
+  waterGoalHistory: [],
+  workoutCompletionsByDay: {},
 };
 
 export function habitEmoji(title: string) {
@@ -83,18 +100,38 @@ function cleanRecord(value: unknown) {
 
 export function cleanMercuryData(value: unknown): MercuryData {
   const saved = cleanRecord(value);
+  const today = dateKey(new Date());
+  const validDay = (value: unknown) => typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+  const trackingSince = validDay(saved.trackingSince) ? String(saved.trackingSince) : today;
   const habits = Array.isArray(saved.habits)
-    ? saved.habits.slice(0, 20).flatMap((item) => {
+    ? saved.habits.flatMap((item) => {
         const habit = cleanRecord(item);
         const id = cleanText(habit.id, 100);
         const title = cleanText(habit.title, 45);
         if (!id || !title) return [];
         const source = habit.source === "workout" ? "workout" as const : undefined;
         const sourceId = source ? cleanText(habit.sourceId, 100) : undefined;
+        const link = ["none", "water", "workout"].includes(String(habit.link))
+          ? habit.link as HabitLink : source ? "workout" : recognizeHabit(title);
+        const scheduleHistory = Array.isArray(habit.scheduleHistory) ? habit.scheduleHistory.flatMap(item => {
+          const revision = cleanRecord(item);
+          if (!validDay(revision.from) || !Array.isArray(revision.weekdays)) return [];
+          return [{ from: String(revision.from), weekdays: [...new Set(revision.weekdays.filter((day): day is number => Number.isInteger(day) && day >= 0 && day <= 6))] }];
+        }).sort((a, b) => a.from.localeCompare(b.from)) : [];
         return [{
           id,
           title,
-          emoji: cleanText(habit.emoji, 8) || habitEmoji(title),
+          emoji: cleanText(habit.emoji, 32) || habitEmoji(title),
+          link,
+          linkHistory: Array.isArray(habit.linkHistory) ? habit.linkHistory.flatMap(item => {
+            const revision = cleanRecord(item);
+            return validDay(revision.from) && ["none", "water", "workout"].includes(String(revision.link)) ? [{ from: String(revision.from), link: revision.link as HabitLink }] : [];
+          }).sort((a,b) => a.from.localeCompare(b.from)) : [{ from: trackingSince, link }],
+          linkMode: habit.linkMode === "manual" ? "manual" as const : "auto" as const,
+          emojiMode: habit.emojiMode === "custom" ? "custom" as const : "auto" as const,
+          createdOn: validDay(habit.createdOn) ? String(habit.createdOn) : trackingSince,
+          ...(validDay(habit.archivedOn) ? { archivedOn: String(habit.archivedOn) } : {}),
+          scheduleHistory: scheduleHistory.length ? scheduleHistory : [{ from: trackingSince, weekdays: source ? [] : [0, 1, 2, 3, 4, 5, 6] }],
           ...(source && sourceId ? { source, sourceId } : {}),
         }];
       })
@@ -131,7 +168,25 @@ export function cleanMercuryData(value: unknown): MercuryData {
   });
 
   const waterGoal = Number(saved.waterGoalMl);
+  const sanitizedGoal = Number.isFinite(waterGoal) ? Math.min(6000, Math.max(500, Math.round(waterGoal))) : 2000;
+  const waterGoalHistory = Array.isArray(saved.waterGoalHistory) ? saved.waterGoalHistory.flatMap(item => {
+    const revision = cleanRecord(item);
+    return validDay(revision.from) && Number.isFinite(Number(revision.goalMl))
+      ? [{ from: String(revision.from), goalMl: Math.min(6000, Math.max(500, Math.round(Number(revision.goalMl)))) }] : [];
+  }).sort((a, b) => a.from.localeCompare(b.from)) : [];
+  const workoutCompletionsByDay: Record<string, string[]> = {};
+  Object.entries(cleanRecord(saved.workoutCompletionsByDay)).forEach(([day, ids]) => {
+    if (validDay(day) && Array.isArray(ids)) workoutCompletionsByDay[day] = [...new Set(ids.filter((id): id is string => typeof id === "string" && id.length < 101))];
+  });
+  // Preserve completed workouts from the earlier storage format.
+  habits.filter(habit => habit.source === "workout").forEach(habit => {
+    Object.entries(completions).forEach(([day, values]) => {
+      if (values[habit.id] && habit.sourceId) workoutCompletionsByDay[day] = [...new Set([...(workoutCompletionsByDay[day] || []), habit.sourceId])];
+    });
+  });
   return {
+    schemaVersion: 2,
+    trackingSince,
     name: cleanText(saved.name, 28),
     goal: cleanText(saved.goal, 60),
     gender: cleanText(saved.gender, 40),
@@ -140,10 +195,10 @@ export function cleanMercuryData(value: unknown): MercuryData {
     completions,
     plannerTasks: Array.isArray(saved.plannerTasks) ? saved.plannerTasks as PlannerTask[] : [],
     focusMinutesByDay,
-    waterGoalMl: Number.isFinite(waterGoal)
-      ? Math.min(6000, Math.max(500, Math.round(waterGoal)))
-      : 2000,
+    waterGoalMl: sanitizedGoal,
+    waterGoalHistory: waterGoalHistory.length ? waterGoalHistory : [{ from: trackingSince, goalMl: sanitizedGoal }],
     waterEntriesByDay,
+    workoutCompletionsByDay,
   };
 }
 
