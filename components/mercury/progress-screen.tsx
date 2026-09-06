@@ -79,9 +79,6 @@ export function ProgressScreen({ data }: { data: MercuryData }) {
       value: percentage(workoutGroup?.done || 0, workoutGroup?.total || 0),
     },
     { metric: "Foco", value: focusScore },
-    // O site ainda não recebe o contador de passos do aplicativo. Mantemos
-    // o eixo pronto para a futura sincronização sem inventar um valor.
-    { metric: "Passos", value: 0 },
   ];
 
   return (
@@ -141,7 +138,7 @@ export function ProgressScreen({ data }: { data: MercuryData }) {
             <div
               className="mt-4 h-[300px] w-full"
               role="img"
-              aria-label="Gráfico em teia com hábitos, água, treino, foco e passos"
+              aria-label="Gráfico em teia com hábitos, água, treino e foco"
             >
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart
@@ -186,8 +183,7 @@ export function ProgressScreen({ data }: { data: MercuryData }) {
             <p className="mt-1 text-xs leading-5 text-white/50">
               Hábitos e treinos usam o percentual concluído do que estava previsto.
               Água usa a média diária em relação à meta e foco considera até 25 min
-              por dia. Passos aparece zerado enquanto o site ainda não recebe o
-              pedômetro do aplicativo.
+              por dia.
             </p>
           </section>
 
