@@ -24,16 +24,37 @@ import {
   weekdayLabel,
   type MercuryData,
 } from "./state";
-import { waterGoalForDay, weekReport } from "./routine";
+import { dayPlan, waterGoalForDay, weekReport } from "./routine";
 
 function percentage(done: number, total: number) {
   if (total <= 0) return 0;
   return Math.max(0, Math.min(100, Math.round((done / total) * 100)));
 }
 
+function monthTitle(month: Date) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    month: "long",
+    year: "numeric",
+  }).format(month).replace(/^./, (letter) => letter.toUpperCase());
+}
+
+function monthDays(month: Date) {
+  const total = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+  return Array.from({ length: total }, (_, index) =>
+    dateKey(new Date(month.getFullYear(), month.getMonth(), index + 1)),
+  );
+}
+
+function shiftMonth(month: Date, amount: number) {
+  return new Date(month.getFullYear(), month.getMonth() + amount, 1);
+}
+
 export function ProgressScreen({ data }: { data: MercuryData }) {
-  const today = dateKey(new Date());
+  const now = new Date();
+  const today = dateKey(now);
+  const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const [anchor, setAnchor] = useState(today);
+  const [radarMonth, setRadarMonth] = useState(currentMonth);
   const report = weekReport(data, anchor, today);
   const labels: Record<string, string> = {
     habit: "Hábitos",
@@ -41,54 +62,161 @@ export function ProgressScreen({ data }: { data: MercuryData }) {
     workout: "Treinos previstos",
   };
 
-  const habitGroup = report.groups.find((group) => group.kind === "habit");
-  const workoutGroup = report.groups.find((group) => group.kind === "workout");
+  const radarAvailableDays = monthDays(radarMonth).filter(
+    (day) => day <= today && day >= data.trackingSince,
+  );
+  const radarItems = radarAvailableDays.flatMap((day) => dayPlan(data, day));
+  const radarHabits = radarItems.filter(
+    (item) => item.kind === "habit" && item.link === "none",
+  );
+  const radarWorkouts = radarItems.filter((item) => item.kind === "workout");
 
-  const waterScore = report.availableDays.length
+  const waterScore = radarAvailableDays.length
     ? Math.round(
-        report.availableDays.reduce((total, day) => {
+        radarAvailableDays.reduce((total, day) => {
           const goal = waterGoalForDay(data, day);
           if (goal <= 0) return total;
-          const rate = Math.min(1, waterTotalForDay(data, day) / goal);
-          return total + rate;
+          return total + Math.min(1, waterTotalForDay(data, day) / goal);
         }, 0) /
-          report.availableDays.length *
+          radarAvailableDays.length *
           100,
       )
     : 0;
 
-  const focusScore = report.availableDays.length
-    ? Math.round(
-        report.availableDays.reduce((total, day) => {
-          const minutes = data.focusMinutesByDay[day] || 0;
-          return total + Math.min(1, minutes / 25);
-        }, 0) /
-          report.availableDays.length *
-          100,
-      )
+  const focusMinutes = radarAvailableDays.reduce(
+    (total, day) => total + (data.focusMinutesByDay[day] || 0),
+    0,
+  );
+  const focusScore = radarAvailableDays.length
+    ? Math.min(100, Math.round((focusMinutes / (radarAvailableDays.length * 25)) * 100))
     : 0;
 
   const radarData = [
     {
       metric: "Hábitos",
-      value: percentage(habitGroup?.done || 0, habitGroup?.total || 0),
+      value: percentage(
+        radarHabits.filter((item) => item.done).length,
+        radarHabits.length,
+      ),
     },
     { metric: "Água", value: waterScore },
     {
       metric: "Treino",
-      value: percentage(workoutGroup?.done || 0, workoutGroup?.total || 0),
+      value: percentage(
+        radarWorkouts.filter((item) => item.done).length,
+        radarWorkouts.length,
+      ),
     },
     { metric: "Foco", value: focusScore },
   ];
+
+  const canGoNextRadarMonth =
+    radarMonth.getFullYear() < currentMonth.getFullYear() ||
+    (radarMonth.getFullYear() === currentMonth.getFullYear() &&
+      radarMonth.getMonth() < currentMonth.getMonth());
 
   return (
     <div className="space-y-6">
       <header>
         <h1 className="text-[32px] font-bold tracking-tight">Seu progresso</h1>
         <p className="mt-2 text-base text-white/60">
-          O que você planejou e registrou na mesma semana.
+          Acompanhe seu equilíbrio mensal e os detalhes da semana.
         </p>
       </header>
+
+      <section className="rounded-[24px] border border-white/15 bg-[#0c0e11] p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold">Equilíbrio do mês</h2>
+            <p className="mt-1 text-sm text-white/60">
+              Hábitos, água, treino e foco acumulados no mês selecionado.
+            </p>
+          </div>
+          <span className="rounded-full border border-[#77a7ff]/25 bg-[#77a7ff]/10 px-3 py-1 text-xs font-semibold text-[#a8c8ff]">
+            0–100%
+          </span>
+        </div>
+
+        <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-white/10 p-2">
+          <button
+            type="button"
+            onClick={() => setRadarMonth((month) => shiftMonth(month, -1))}
+            aria-label="Mês anterior"
+            className="grid size-10 shrink-0 place-items-center rounded-xl hover:bg-white/10"
+          >
+            <ChevronLeft className="size-5" />
+          </button>
+          <p className="text-center text-sm font-semibold">{monthTitle(radarMonth)}</p>
+          <button
+            type="button"
+            disabled={!canGoNextRadarMonth}
+            onClick={() => setRadarMonth((month) => shiftMonth(month, 1))}
+            aria-label="Próximo mês"
+            className="grid size-10 shrink-0 place-items-center rounded-xl hover:bg-white/10 disabled:opacity-30"
+          >
+            <ChevronRight className="size-5" />
+          </button>
+        </div>
+
+        {radarAvailableDays.length ? (
+          <>
+            <div
+              className="mt-4 h-[300px] w-full"
+              role="img"
+              aria-label="Gráfico mensal em teia com hábitos, água, treino e foco"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <RadarChart
+                  data={radarData}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius="72%"
+                >
+                  <PolarGrid stroke="rgba(255,255,255,.14)" />
+                  <PolarAngleAxis
+                    dataKey="metric"
+                    tick={{ fill: "#d8dee9", fontSize: 12, fontWeight: 600 }}
+                  />
+                  <PolarRadiusAxis
+                    angle={90}
+                    domain={[0, 100]}
+                    ticks={[25, 50, 75, 100]}
+                    tick={false}
+                    axisLine={false}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: "#10151e",
+                      border: "1px solid #35445d",
+                      borderRadius: 12,
+                    }}
+                    formatter={(value) => [`${value}%`, "Progresso mensal"]}
+                  />
+                  <Radar
+                    name="Progresso mensal"
+                    dataKey="value"
+                    stroke="#77a7ff"
+                    fill="#77a7ff"
+                    fillOpacity={0.2}
+                    strokeWidth={2.5}
+                    dot={{ r: 3, fill: "#a8c8ff" }}
+                  />
+                </RadarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <p className="mt-1 text-xs leading-5 text-white/50">
+              Hábitos e treinos consideram tudo o que estava previsto no mês. Água
+              compara o consumo diário com a meta e foco considera uma referência de
+              25 min por dia. No mês atual, o cálculo vai somente até hoje.
+            </p>
+          </>
+        ) : (
+          <p className="mt-5 rounded-2xl border border-dashed border-white/15 p-5 text-sm text-white/60">
+            Ainda não há dados suficientes para calcular este mês.
+          </p>
+        )}
+      </section>
 
       <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/15 p-2">
         <button
@@ -122,71 +250,6 @@ export function ProgressScreen({ data }: { data: MercuryData }) {
         </p>
       ) : (
         <>
-          <section className="rounded-[24px] border border-white/15 bg-[#0c0e11] p-5">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <div>
-                <h2 className="text-lg font-semibold">Equilíbrio da semana</h2>
-                <p className="mt-1 text-sm text-white/60">
-                  Uma visão rápida das áreas que formam sua rotina.
-                </p>
-              </div>
-              <span className="rounded-full border border-[#77a7ff]/25 bg-[#77a7ff]/10 px-3 py-1 text-xs font-semibold text-[#a8c8ff]">
-                0–100%
-              </span>
-            </div>
-
-            <div
-              className="mt-4 h-[300px] w-full"
-              role="img"
-              aria-label="Gráfico em teia com hábitos, água, treino e foco"
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <RadarChart
-                  data={radarData}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius="72%"
-                >
-                  <PolarGrid stroke="rgba(255,255,255,.14)" />
-                  <PolarAngleAxis
-                    dataKey="metric"
-                    tick={{ fill: "#d8dee9", fontSize: 12, fontWeight: 600 }}
-                  />
-                  <PolarRadiusAxis
-                    angle={90}
-                    domain={[0, 100]}
-                    ticks={[25, 50, 75, 100]}
-                    tick={false}
-                    axisLine={false}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      background: "#10151e",
-                      border: "1px solid #35445d",
-                      borderRadius: 12,
-                    }}
-                    formatter={(value) => [`${value}%`, "Progresso"]}
-                  />
-                  <Radar
-                    name="Progresso"
-                    dataKey="value"
-                    stroke="#77a7ff"
-                    fill="#77a7ff"
-                    fillOpacity={0.2}
-                    strokeWidth={2.5}
-                    dot={{ r: 3, fill: "#a8c8ff" }}
-                  />
-                </RadarChart>
-              </ResponsiveContainer>
-            </div>
-
-            <p className="mt-1 text-xs leading-5 text-white/50">
-              Hábitos e treinos usam o percentual concluído do que estava previsto.
-              Água usa a média diária em relação à meta e foco considera até 25 min
-              por dia.
-            </p>
-          </section>
-
           <section className="rounded-[24px] border border-white/15 bg-[#0c0e11] p-5">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h2 className="text-lg font-semibold">Plano realizado</h2>
