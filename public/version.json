@@ -1,8 +1,8 @@
 {
-  "version_name": "1.0.0",
-  "version_code": 2,
+  "version_name": "2.0.0",
+  "version_code": 8,
   "minimum_version_code": 1,
   "update_page_url": "https://mercury-habit-tracker-site.cezaraugust76.workers.dev/atualizacao",
-  "download_url": "https://github.com/cezar0810/mercury-downloads/releases/latest/download/Mercury-Habit-Tracker.apk",
-  "message": "Uma nova versão do Mercury está disponível."
+  "download_url": "https://github.com/cezar0810/mercury-downloads/releases/download/v2.0.0/Mercury-Habit-Tracker.apk",
+  "message": "Relatório mensal com gráfico teia, passos, água, treinos, foco e calorias."
 }
