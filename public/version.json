@@ -1,8 +1,8 @@
 {
   "version_name": "2.0.0",
-  "version_code": 8,
+  "version_code": 9,
   "minimum_version_code": 1,
   "update_page_url": "https://mercury-habit-tracker-site.cezaraugust76.workers.dev/atualizacao",
-  "download_url": "https://github.com/cezar0810/mercury-downloads/releases/download/v2.0.0/Mercury-Habit-Tracker.apk",
-  "message": "Relatório mensal com gráfico teia, passos, água, treinos, foco e calorias."
+  "download_url": "https://github.com/cezar0810/mercury-downloads/releases/latest/download/Mercury-Habit-Tracker.apk",
+  "message": "Versão 2.0.0 build 9 com assinatura permanente. Quem possui a versão anterior deve desinstalá-la uma única vez antes de instalar; a desinstalação remove os dados locais. Depois disso, as próximas atualizações funcionarão normalmente."
 }
