@@ -52,6 +52,7 @@ export default function UpdatePage() {
             <li>Confirme a instalação e abra o Mercury novamente.</li>
           </ol>
           <div className="mt-7 rounded-2xl border border-white/10 bg-white/[0.025] p-5 text-sm leading-6 text-white/70">
+            <p className="mb-3"><strong className="text-white">Não desinstale seu app atual antes de tentar a atualização.</strong> Primeiro, abra o novo APK sobre a instalação existente para preservar seus dados.</p>
             <p><strong className="text-white">Atenção para instalações antigas:</strong> a versão 2.0.0 usa uma nova assinatura. Se aparecer conflito de assinatura, será necessário desinstalar a versão antiga antes de instalar. A desinstalação apaga os dados salvos localmente.</p>
           </div>
         </section>

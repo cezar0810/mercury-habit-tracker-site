@@ -19,8 +19,8 @@
 }
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #000000;
+  --foreground: #f5f7fb;
   --card: #ffffff;
   --card-foreground: #171717;
   --popover: #ffffff;
@@ -140,7 +140,12 @@ body {
 
 html {
   scroll-behavior: smooth;
-  background: #080b0a;
+  background: #000;
+}
+
+body {
+  min-height: 100vh;
+  background: #000;
 }
 
 button,

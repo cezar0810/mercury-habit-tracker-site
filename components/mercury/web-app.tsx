@@ -33,7 +33,6 @@ import { activeHabits, allWeekdays, habitLink, scheduleHabit, setHabitLink } fro
 import { recognizeHabit } from "./habit-recognition";
 import type { HabitOptionsChange } from "./habit-options";
 import { AdsterraContentAd, AdsterraSidebarAd } from "./adsterra-banner";
-import { DownloadArea } from "./download-area";
 import { FocusScreen } from "./focus-screen";
 import { HabitsScreen } from "./habits-screen";
 import { InicioScreen } from "./inicio-screen";
@@ -70,7 +69,6 @@ export function MercuryWebApp() {
   );
   const [plannerDate, setPlannerDate] = useState(() => dateKey(new Date()));
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [installOnly, setInstallOnly] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const [goalDraft, setGoalDraft] = useState("");
   const [genderDraft, setGenderDraft] = useState("");
@@ -83,7 +81,6 @@ export function MercuryWebApp() {
 
   useEffect(() => {
     setData(readMercuryData());
-    setInstallOnly(window.location.hash === "#download");
     setHydrated(true);
     const handleStorage = (event: StorageEvent) => {
       if (event.key === MERCURY_STORAGE_KEY) setData(readMercuryData());
@@ -400,11 +397,11 @@ export function MercuryWebApp() {
   const profileComplete = profileIsComplete(data);
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#000] text-white">
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_50%_-10%,rgba(52,124,246,0.18),transparent_35%),radial-gradient(circle_at_100%_50%,rgba(27,73,165,0.1),transparent_30%)]" />
+    <main className="min-h-screen overflow-x-hidden bg-black text-white">
+      <div className="pointer-events-none fixed inset-x-0 top-0 h-72 bg-[radial-gradient(circle_at_50%_-30%,rgba(48,126,255,0.16),transparent_62%)]" />
 
-      <section className="relative mx-auto min-h-[100svh] max-w-7xl px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
-        <header className="flex items-center justify-between rounded-2xl border border-white/[0.1] bg-[#0b0c0d]/90 px-4 py-3 shadow-[0_14px_45px_rgba(0,0,0,0.22)] backdrop-blur-xl sm:px-5">
+      <section className="relative mx-auto min-h-[100svh] max-w-7xl sm:px-6 sm:py-8 lg:px-8">
+        <header className="mx-4 mt-4 flex items-center justify-between rounded-[22px] border border-white/[0.11] bg-[#090a0b]/95 px-4 py-3 backdrop-blur-xl sm:mx-0 sm:mt-0 sm:px-5">
           <div className="flex min-w-0 items-center gap-3">
             <img
               src="/mercury-app-icon.png"
@@ -434,11 +431,12 @@ export function MercuryWebApp() {
               )}
             </button>
             <a
-              href="#download"
-              aria-label="Instalar Mercury no celular"
-              className="grid size-10 place-items-center rounded-xl bg-[#347cf6] shadow-[0_8px_20px_rgba(52,124,246,0.28)]"
+              href="/download"
+              aria-label="Abrir a página de download do Mercury"
+              className="flex min-h-10 items-center gap-2 rounded-xl bg-[#2f80ff] px-3 text-xs font-bold shadow-[0_8px_20px_rgba(47,128,255,0.26)] transition hover:bg-[#438cff]"
             >
               <Download className="size-4" />
+              <span>Download</span>
             </a>
           </div>
         </header>
@@ -501,7 +499,7 @@ export function MercuryWebApp() {
             </div>
           </aside>
 
-          <section className="min-w-0 rounded-[28px] border border-white/[0.1] bg-[#050607]/90 shadow-[0_20px_70px_rgba(0,0,0,0.24)]">
+          <section className="min-w-0 border-y border-white/[0.08] bg-black sm:rounded-[28px] sm:border sm:border-white/[0.1] sm:bg-[#050607]/95 sm:shadow-[0_20px_70px_rgba(0,0,0,0.24)]">
             <div className="px-5 py-7 sm:px-8 sm:py-9">
               {screen}
               {hydrated && data.name.trim() && (
@@ -510,20 +508,19 @@ export function MercuryWebApp() {
                 </div>
               )}
             </div>
-            <div className="border-t border-white/[0.06] lg:hidden">
+            <div className="sticky bottom-0 z-40 border-t border-white/[0.06] bg-black/95 pt-1 backdrop-blur-xl lg:hidden">
               <BottomNavigation tab={tab} onChange={setTab} />
             </div>
           </section>
         </div>
       </section>
 
-      <DownloadArea />
-      <footer className="relative border-t border-white/[0.07] px-5 py-7 text-center text-xs text-white/38">
+      <footer className="relative hidden border-t border-white/[0.07] px-5 py-7 text-center text-xs text-white/38 lg:block">
         Mercury Habit Tracker · seus dados ficam salvos neste navegador
       </footer>
 
       <Dialog
-        open={hydrated && !data.name.trim() && !installOnly}
+        open={hydrated && !data.name.trim()}
         onOpenChange={() => undefined}
       >
         <DialogContent
@@ -556,7 +553,7 @@ export function MercuryWebApp() {
             >
               Entrar no Mercury
             </button>
-            <a href="#download" onClick={() => setInstallOnly(true)} className="mt-3 flex min-h-11 items-center justify-center text-sm text-[#a8c8ff]">Quero apenas instalar no celular</a>
+            <a href="/download" className="mt-3 flex min-h-11 items-center justify-center text-sm text-[#a8c8ff]">Quero apenas instalar no celular</a>
           </form>
         </DialogContent>
       </Dialog>

@@ -23,7 +23,7 @@ export function InstallationHelp() {
   const [copied, setCopied] = useState(false);
   const [copyFallback, setCopyFallback] = useState("");
   const copy = async () => {
-    const url = new URL("/#download", window.location.href).href;
+    const url = new URL("/download", window.location.href).href;
     try { await navigator.clipboard.writeText(url); setCopied(true); }
     catch { setCopyFallback(url); }
   };

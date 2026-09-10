@@ -110,7 +110,7 @@ test("banner do conteúdo troca para 320x50 no celular", () => {
   assert.equal(config.contentAdPlacement(468), "content");
 });
 
-test("tracker tem um lateral e um responsivo, preservando dados e download", async () => {
+test("tracker preserva dados e anúncios, com download em página separada", async () => {
   const webApp = await readFile(new URL("../components/mercury/web-app.tsx", import.meta.url), "utf8");
   const download = await readFile(new URL("../components/mercury/download-area.tsx", import.meta.url), "utf8");
   assert.equal((webApp.match(/<AdsterraSidebarAd/g) ?? []).length, 1);
@@ -121,6 +121,8 @@ test("tracker tem um lateral e um responsivo, preservando dados e download", asy
   const manifest = JSON.parse(await readFile(new URL("../public/version.json", import.meta.url), "utf8"));
   const apkDownload = await readFile(new URL("../components/mercury/apk-download.tsx", import.meta.url), "utf8");
   assert.match(download, /<ApkDownload/);
+  assert.match(webApp, /href="\/download"/);
+  assert.doesNotMatch(webApp, /<DownloadArea/);
   assert.match(apkDownload, /href=\{appRelease\.download_url\}/);
   assert.match(manifest.download_url, /releases\/latest\/download\/Mercury-Habit-Tracker\.apk/);
 });
