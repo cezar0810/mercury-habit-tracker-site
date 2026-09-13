@@ -1,14 +1,14 @@
 # Mercury: ativação e revisão da sincronização
 
-Estado em 13/09/2026: código preparado para revisão. Não publicado em produção. O conector Supabase retornou zero projetos acessíveis; nenhuma migração ou configuração OAuth foi aplicada remotamente.
+Estado em 13/09/2026: as migrações `mercury_cloud_sync` e `harden_mercury_grants` foram aplicadas ao projeto `Mercury habit tracker`. As três tabelas estão vazias, com RLS ativo, Realtime publicado e sem alertas dos advisors de segurança/performance. O código ainda está em branch de revisão e não foi publicado no site ou no APK. A configuração do provedor Google continua pendente no painel.
 
 ## Ativação no mesmo projeto para site e app
 
-1. Disponibilize o projeto Supabase existente ao conector. Não crie outro banco se já houver dados de produção. Confira tabelas/migrações existentes antes de aplicar este arquivo.
+1. Use o projeto existente `Mercury habit tracker` (`ujgmefsbaehwpvmelqrc`). Não crie outro banco.
 2. No painel Supabase, Authentication → Sign In / Providers → Google, habilite o provedor. No Google Cloud, configure um cliente OAuth Web e use a URL de callback exibida pelo Supabase, normalmente `https://SEU_PROJETO.supabase.co/auth/v1/callback`. O segredo Google fica somente no painel do Supabase.
 3. Em Authentication → URL Configuration, configure Site URL como `https://mercury-habit-tracker-site.cezaraugust76.workers.dev`. Adicione à lista de redirecionamentos `https://mercury-habit-tracker-site.cezaraugust76.workers.dev/` e `com.mercury.habits://login-callback`. Inclua separadamente o domínio de homologação e localhost se forem usados.
-4. Revise e execute uma única vez `supabase/migrations/20260913020430_mercury_cloud_sync.sql` pelo SQL Editor do projeto correto. Alternativa com CLI: inicialize a configuração local se ausente (`supabase init`), vincule o projeto (`supabase link --project-ref SEU_PROJECT_REF`) e, após conferir migrações já aplicadas, execute `supabase db push`. Não reaplique manualmente a mesma migração depois.
-5. Copie `.env.example` para `.env.local`. Preencha URL e chave pública/publicável do projeto. Configure os mesmos dois nomes `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` no ambiente de **build** do site original. Essas variáveis são incorporadas ao bundle; exigir novo build é intencional. Nunca use `service_role` nem a chave secreta no cliente.
+4. As duas migrações em `supabase/migrations/` já foram aplicadas ao projeto remoto. Não as execute novamente manualmente. Em um ambiente novo, aplique-as na ordem pelo processo normal de migrações.
+5. O cliente contém a URL e a chave **publicável** deste projeto como padrão para o primeiro deploy. As variáveis `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` podem sobrescrever esses valores no build para rotação ou homologação. Nunca use `service_role` nem chave secreta no cliente.
 6. Configure o app conforme `docs/CLOUD-SYNC.md` no repositório App-mercury. Ambos devem apontar para o mesmo projeto.
 7. Rode os testes e o checklist abaixo, depois publique pelo processo Cloudflare já existente. Este trabalho não modifica o APK publicado nem `version.json`.
 
@@ -37,7 +37,7 @@ Referências: [Sensor APIs / MDN](https://developer.mozilla.org/en-US/docs/Web/A
 
 ## Verificação
 
-Executados: build do site; testes Node de regressão, protocolo, clima e Postgres/PGlite. PGlite executou a migração real, RLS, isolamento entre usuários, reenvios, sequência fora de ordem, alterações de dois dispositivos, correção anual entre anos e rollback de requisição inválida. Isso não substitui teste de Realtime/OAuth em Supabase real.
+Executados: build do site; 39 testes Node de regressão, protocolo, clima e Postgres/PGlite. PGlite executou as regras de RLS, isolamento entre usuários, reenvios, sequência fora de ordem, alterações de dois dispositivos, correção anual entre anos e rollback de requisição inválida. No Supabase real foram verificados tabelas, RLS, privilégios mínimos, publicação Realtime, migrações e advisors. Isso não substitui teste de Realtime/OAuth com uma conta Google real.
 
 `tsc --noEmit` ainda aponta quatro declarações Cloudflare ausentes que já existem na base (`cloudflare:workers`, `D1Database`, `Fetcher`). Nenhum erro novo de tipos foi observado nas alterações. O navegador de homologação não foi acessível neste ambiente; a semelhança visual foi implementada em código, mas não certificada por comparação de screenshots.
 
