@@ -28,6 +28,8 @@ export async function GET(request: Request) {
   const latitude = Number(requestUrl.searchParams.get("lat"));
   const longitude = Number(requestUrl.searchParams.get("lon"));
   if (
+    !requestUrl.searchParams.get("lat")?.trim() ||
+    !requestUrl.searchParams.get("lon")?.trim() ||
     !Number.isFinite(latitude) ||
     !Number.isFinite(longitude) ||
     latitude < -90 ||
@@ -46,6 +48,7 @@ export async function GET(request: Request) {
 
   try {
     const response = await fetch(endpoint, {
+      signal: AbortSignal.timeout(10000),
       headers: {
         Accept: "application/json",
         "User-Agent": "MercuryHabitTracker/1.0 (https://mercury-habit-tracker-site.cezaraugust76.workers.dev/)",

@@ -1,4 +1,5 @@
 "use client";
+import { useMercuryData } from "./use-mercury-data";
 
 import {
   ArrowLeft,
@@ -33,8 +34,7 @@ function entryTime(value: string) {
 }
 
 export function MercuryWaterApp() {
-  const [data, setData] = useState<MercuryData>({ ...blankMercuryData });
-  const [hydrated, setHydrated] = useState(false);
+  const [data, setData, hydrated] = useMercuryData();
   const [customAmount, setCustomAmount] = useState("200");
   const [goalDraft, setGoalDraft] = useState("2000");
   const [notice, setNotice] = useState("");
@@ -42,9 +42,9 @@ export function MercuryWaterApp() {
 
   useEffect(() => {
     const restored = readMercuryData();
-    setData(restored);
+
     setGoalDraft(String(restored.waterGoalMl));
-    setHydrated(true);
+
   }, []);
 
   const entries = data.waterEntriesByDay[today] || [];
@@ -62,7 +62,7 @@ export function MercuryWaterApp() {
 
   function persist(next: MercuryData) {
     setData(next);
-    writeMercuryData(next);
+
   }
 
   function addWater(amount: number) {

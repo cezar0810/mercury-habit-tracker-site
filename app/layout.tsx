@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { CloudSync } from "@/components/mercury/cloud-sync";
 
 export const metadata: Metadata = {
   title: "Mercury Habit Tracker",
@@ -23,7 +24,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased"><CloudSync>{children}</CloudSync></body>
     </html>
   );
 }

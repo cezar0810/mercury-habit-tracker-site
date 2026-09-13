@@ -1,16 +1,9 @@
 "use client";
 
 import { CloudRain, Droplets, Gauge, LocateFixed, RefreshCw, Wind } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-const LOCATION_KEY = "mercury-weather-location-v1";
-const DEFAULT_LOCATION = {
-  latitude: -20.5575,
-  longitude: -48.5678,
-  label: "Barretos",
-};
-
-type WeatherLocation = typeof DEFAULT_LOCATION;
+type WeatherLocation = { latitude: number; longitude: number; label: string };
 
 type WeatherResult = {
   temperature: number;
@@ -44,79 +37,64 @@ function weatherPresentation(symbolCode: string) {
 }
 
 export function WeatherCard({ compact = false }: { compact?: boolean }) {
-  const [location, setLocation] = useState<WeatherLocation>(DEFAULT_LOCATION);
+  const [location, setLocation] = useState<WeatherLocation | null>(null);
   const [weather, setWeather] = useState<WeatherResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
 
-  async function loadWeather(nextLocation: WeatherLocation) {
-    setLoading(true);
-    setMessage("");
+  const requestId = useRef(0);
+  const pending = useRef<AbortController | null>(null);
+
+  async function loadWeather(nextLocation: WeatherLocation, id: number) {
+    const controller = new AbortController();
+    pending.current?.abort();
+    pending.current = controller;
     try {
-      const params = new URLSearchParams({
-        lat: String(nextLocation.latitude),
-        lon: String(nextLocation.longitude),
-      });
-      const response = await fetch(`/api/weather?${params.toString()}`);
-      if (!response.ok) throw new Error("weather unavailable");
+      const params = new URLSearchParams({ lat: String(nextLocation.latitude), lon: String(nextLocation.longitude) });
+      const response = await fetch(`/api/weather?${params}`, { signal: controller.signal });
+      if (!response.ok) throw new Error('weather unavailable');
       const result = await response.json() as WeatherResult;
-      setWeather(result);
+      if (!Number.isFinite(result.temperature)) throw new Error('invalid weather');
+      if (requestId.current === id) setWeather(result);
     } catch {
-      setMessage("Clima indisponível agora");
+      if (requestId.current === id && !controller.signal.aborted) setMessage('Clima indisponível agora. Tente novamente.');
     } finally {
-      setLoading(false);
+      if (requestId.current === id) setLoading(false);
     }
+  }
+
+  function useCurrentLocation() {
+    const id = ++requestId.current;
+    pending.current?.abort();
+    setWeather(null);
+    setMessage('');
+    setLoading(true);
+    if (!navigator.geolocation) {
+      setLoading(false);
+      setMessage('Localização não disponível neste navegador');
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(position => {
+      if (id !== requestId.current) return;
+      const next = { latitude: position.coords.latitude, longitude: position.coords.longitude, label: 'sua localização' };
+      setLocation(next);
+      void loadWeather(next, id);
+    }, error => {
+      if (id !== requestId.current) return;
+      setLoading(false);
+      setLocation(null);
+      setMessage(error.code === 1 ? 'Permita a localização para consultar o clima local.' : 'Não foi possível localizar você. Tente novamente.');
+    }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 });
   }
 
   useEffect(() => {
-    let initial = DEFAULT_LOCATION;
-    try {
-      const saved = window.localStorage.getItem(LOCATION_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved) as Partial<WeatherLocation>;
-        if (Number.isFinite(parsed.latitude) && Number.isFinite(parsed.longitude)) {
-          initial = {
-            latitude: Number(parsed.latitude),
-            longitude: Number(parsed.longitude),
-            label: typeof parsed.label === "string" ? parsed.label : "Sua localização",
-          };
-        }
-      }
-    } catch {
-      window.localStorage.removeItem(LOCATION_KEY);
-    }
-    setLocation(initial);
-    void loadWeather(initial);
+    useCurrentLocation();
+    return () => { requestId.current++; pending.current?.abort(); };
   }, []);
-
-  function useCurrentLocation() {
-    if (!navigator.geolocation) {
-      setMessage("Localização não disponível neste navegador");
-      return;
-    }
-    setLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const nextLocation = {
-          latitude: Math.round(position.coords.latitude * 10_000) / 10_000,
-          longitude: Math.round(position.coords.longitude * 10_000) / 10_000,
-          label: "Sua localização",
-        };
-        setLocation(nextLocation);
-        window.localStorage.setItem(LOCATION_KEY, JSON.stringify(nextLocation));
-        void loadWeather(nextLocation);
-      },
-      () => {
-        setLoading(false);
-        setMessage("Permissão de localização não concedida");
-      },
-      { enableHighAccuracy: false, timeout: 8000, maximumAge: 1_800_000 },
-    );
-  }
 
   const presentation = weatherPresentation(weather?.symbolCode || "clearsky_day");
   if (compact) return <details className="group max-w-full rounded-2xl border border-sky-300/15 bg-[linear-gradient(135deg,rgba(29,78,146,0.28),rgba(12,16,23,0.95))] px-4 py-3 text-sm shadow-[0_12px_32px_rgba(0,0,0,0.18)]">
-    <summary className="flex min-h-11 cursor-pointer list-none items-center gap-3 text-white/80 marker:hidden"><span aria-hidden="true" className="text-2xl">{weather ? presentation.icon : "🌤️"}</span><span className="min-w-0 flex-1"><strong className="block truncate text-base text-white">{loading ? "Carregando clima…" : weather ? `${Math.round(weather.temperature)}° · ${presentation.description}` : "Clima indisponível"}</strong><span className="block truncate text-xs text-sky-100/55">{location.label}{weather ? ` · mínima ${Math.round(weather.minTemperature)}° / máxima ${Math.round(weather.maxTemperature)}°` : ""}</span></span><span className="text-xs text-white/40 transition group-open:rotate-180">⌄</span></summary>
+    <summary className="flex min-h-11 cursor-pointer list-none items-center gap-3 text-white/80 marker:hidden"><span aria-hidden="true" className="text-2xl">{weather ? presentation.icon : "🌤️"}</span><span className="min-w-0 flex-1"><strong className="block truncate text-base text-white">{loading ? "Carregando clima…" : weather ? `${Math.round(weather.temperature)}° · ${presentation.description}` : "Clima indisponível"}</strong><span className="block truncate text-xs text-sky-100/55">{(location?.label || "localização não definida")}{weather ? ` · mínima ${Math.round(weather.minTemperature)}° / máxima ${Math.round(weather.maxTemperature)}°` : ""}</span></span><span className="text-xs text-white/40 transition group-open:rotate-180">⌄</span></summary>
     {weather ? <div className="mt-3 grid grid-cols-2 gap-2 border-t border-white/10 pt-3 text-xs text-white/68">
       <span className="flex min-h-10 items-center gap-2"><Droplets className="size-4 text-sky-300" />Umidade {weather.humidity === null ? "—" : `${Math.round(weather.humidity)}%`}</span>
       <span className="flex min-h-10 items-center gap-2"><Wind className="size-4 text-sky-300" />Vento {weather.windSpeed === null ? "—" : `${Math.round(weather.windSpeed)} m/s ${windDirection(weather.windDirection)}`}</span>
@@ -132,7 +110,7 @@ export function WeatherCard({ compact = false }: { compact?: boolean }) {
       <div className="pointer-events-none absolute -right-8 -top-12 size-40 rounded-full bg-sky-400/10 blur-2xl" />
       <div className="relative flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-sky-100/65">Agora em {location.label}</p>
+          <p className="text-sm font-semibold text-sky-100/65">Agora em {(location?.label || "localização não definida")}</p>
           {loading ? (
             <div className="mt-3 h-10 w-24 animate-pulse rounded-xl bg-white/10" />
           ) : weather ? (
@@ -158,7 +136,7 @@ export function WeatherCard({ compact = false }: { compact?: boolean }) {
         <a href="https://www.met.no/en" target="_blank" rel="noreferrer" className="text-[11px] text-white/32 hover:text-white/55">
           Dados: MET Norway
         </a>
-        <button type="button" onClick={weather ? useCurrentLocation : () => void loadWeather(location)} className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-white/10 px-2.5 text-xs font-semibold text-white/58 hover:bg-white/[0.06]" aria-label={weather ? "Usar minha localização" : "Tentar carregar o clima novamente"}>
+        <button type="button" onClick={useCurrentLocation} className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-white/10 px-2.5 text-xs font-semibold text-white/58 hover:bg-white/[0.06]" aria-label={weather ? "Usar minha localização" : "Tentar carregar o clima novamente"}>
           {weather ? <LocateFixed className="size-3.5" /> : <RefreshCw className="size-3.5" />}
           {weather ? "Meu local" : "Tentar de novo"}
         </button>

@@ -1,4 +1,5 @@
 "use client";
+import { useWorkouts, useMercuryData } from "./use-mercury-data";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
@@ -123,7 +124,7 @@ function ExerciseImage({ path, name }: { path?: string; name: string }) {
 }
 
 export function MercuryWorkoutsApp() {
-  const [workouts, setWorkouts] = useState<WorkoutPlan[]>([]);
+  const [workouts, setWorkouts] = useWorkouts();
   const [selectedWorkoutId, setSelectedWorkoutId] = useState("");
   const [hydrated, setHydrated] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -141,7 +142,7 @@ export function MercuryWorkoutsApp() {
   const [session, setSession] = useState<TrainingSession | null>(null);
   const [completedWorkout, setCompletedWorkout] = useState("");
   const [completedCalories, setCompletedCalories] = useState(0);
-  const [physicalData, setPhysicalData] = useState<MercuryData>({ ...blankMercuryData });
+  const [physicalData, setPhysicalData] = useMercuryData();
 
   useEffect(() => {
     try {
@@ -157,12 +158,6 @@ export function MercuryWorkoutsApp() {
       setHydrated(true);
     }
   }, []);
-
-  useEffect(() => {
-    if (hydrated) {
-      window.localStorage.setItem(WORKOUTS_STORAGE_KEY, JSON.stringify(workouts));
-    }
-  }, [hydrated, workouts]);
 
   useEffect(() => {
     if (hydrated) void loadCatalog();

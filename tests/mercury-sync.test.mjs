@@ -15,7 +15,8 @@ async function loadSource(relativePath, aliases = {}) {
 }
 const recognition = await loadSource("../components/mercury/habit-recognition.ts");
 const state = await loadSource("../components/mercury/state.ts", { "./habit-recognition": recognition });
-const storage = await loadSource("../components/mercury/mercury-storage.ts", { "./state": state });
+const protocol = await loadSource("../lib/sync-protocol.ts");
+const storage = await loadSource("../components/mercury/mercury-storage.ts", { "./state": state, "@/lib/sync-protocol": protocol });
 const routine = await loadSource("../components/mercury/routine.ts", { "./state": state, "./habit-recognition": recognition });
 const health = await loadSource("../components/mercury/health-metrics.ts");
 const clean = value => JSON.parse(JSON.stringify(value));
@@ -118,6 +119,6 @@ test("calorias do treino entram uma vez no relatório semanal", () => {
     "2026-09-04",
     120,
   );
-  assert.equal(twice.workoutCaloriesByDay["2026-09-04"], 120);
+  assert.equal(state.workoutCaloriesTotal(twice, "2026-09-04"), 120);
   assert.equal(routine.weekReport(twice, "2026-09-04", "2026-09-04").caloriesBurned, 120);
 });

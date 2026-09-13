@@ -1,3 +1,4 @@
+import { workoutCaloriesTotal } from "./state";
 import { dateFromKey, dateKey, shiftDate, waterTotalForDay, type Habit, type MercuryData } from "./state";
 import { recognizeHabit } from "./habit-recognition";
 
@@ -81,6 +82,6 @@ export function weekReport(data: MercuryData, anchor: string, today = dateKey(ne
     waterGoalDays: waterDays.filter(day => waterTotalForDay(data,day) >= waterGoalForDay(data,day)).length,
     focusMinutes: availableDays.reduce((total,day) => total + (data.focusMinutesByDay[day] || 0),0),
     workoutsDone: availableDays.reduce((total,day) => total + (data.workoutCompletionsByDay[day] || []).length,0),
-    caloriesBurned: availableDays.reduce((total,day) => total + (data.workoutCaloriesByDay[day] || 0),0),
+    caloriesBurned: availableDays.reduce((total,day) => total + workoutCaloriesTotal(data, day),0),
   };
 }

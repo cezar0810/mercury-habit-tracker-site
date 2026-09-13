@@ -152,3 +152,21 @@ button,
 a {
   -webkit-tap-highlight-color: transparent;
 }
+
+/* Shared Mercury palette: independent of the browser's preferred color scheme. */
+:root {
+  color-scheme: dark;
+  --background: #000; --foreground: #f5f7fb;
+  --card: #0a0a0a; --card-foreground: #f5f7fb;
+  --popover: #101010; --popover-foreground: #f5f7fb;
+  --primary: #2979ff; --primary-foreground: #fff;
+  --secondary: #111a2a; --secondary-foreground: #f5f7fb;
+  --muted: #151515; --muted-foreground: #a1a1a1;
+  --accent: #132342; --accent-foreground: #f5f7fb;
+  --border: #292929; --input: #292929; --ring: #2979ff;
+  --radius: 1rem;
+}
+@media (max-width: 640px) {
+  main { padding-left: 18px; padding-right: 18px; }
+  input, select, textarea { font-size: 16px; }
+}

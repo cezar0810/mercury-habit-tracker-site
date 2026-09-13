@@ -1,5 +1,6 @@
 "use client";
 
+import { workoutCaloriesTotal } from "./state";
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
@@ -24,7 +25,7 @@ import {
   weekdayLabel,
   type MercuryData,
 } from "./state";
-import { dayPlan, waterGoalForDay, weekReport } from "./routine";
+import { habitIsScheduled, habitIsComplete, waterGoalForDay, weekReport } from "./routine";
 
 function percentage(done: number, total: number) {
   if (total <= 0) return 0;
@@ -63,13 +64,10 @@ export function ProgressScreen({ data }: { data: MercuryData }) {
   };
 
   const radarAvailableDays = monthDays(radarMonth).filter(
-    (day) => day <= today && day >= data.trackingSince,
+    (day) => day <= today,
   );
-  const radarItems = radarAvailableDays.flatMap((day) => dayPlan(data, day));
-  const radarHabits = radarItems.filter(
-    (item) => item.kind === "habit" && item.link === "none",
-  );
-  const radarWorkouts = radarItems.filter((item) => item.kind === "workout");
+  const radarHabits = radarAvailableDays.flatMap(day => data.habits.filter(habit => habitIsScheduled(habit, day)).map(habit => ({ habit, done: habitIsComplete(data, habit, day) })));
+  const radarWorkouts = radarHabits.filter(item => item.habit.source === "workout");
 
   const waterScore = radarAvailableDays.length
     ? Math.round(
@@ -99,6 +97,7 @@ export function ProgressScreen({ data }: { data: MercuryData }) {
         radarHabits.length,
       ),
     },
+    { metric: "Passos", value: percentage(radarAvailableDays.reduce((sum, day) => sum + (data.stepsByDay[day] || 0), 0), radarAvailableDays.length * 10000) },
     { metric: "Água", value: waterScore },
     {
       metric: "Treino",
@@ -118,7 +117,7 @@ export function ProgressScreen({ data }: { data: MercuryData }) {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-[32px] font-bold tracking-tight">Seu progresso</h1>
+        <h1 className="text-[32px] font-bold tracking-tight">Relatório</h1>
         <p className="mt-2 text-base text-white/60">
           Acompanhe seu equilíbrio mensal e os detalhes da semana.
         </p>
@@ -163,7 +162,7 @@ export function ProgressScreen({ data }: { data: MercuryData }) {
             <div
               className="mt-4 h-[300px] w-full"
               role="img"
-              aria-label="Gráfico mensal em teia com hábitos, água, treino e foco"
+              aria-label="Gráfico mensal em teia com hábitos, passos, água, treino e foco"
             >
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart
@@ -180,7 +179,6 @@ export function ProgressScreen({ data }: { data: MercuryData }) {
                   <PolarRadiusAxis
                     angle={90}
                     domain={[0, 100]}
-                    ticks={[25, 50, 75, 100]}
                     tick={false}
                     axisLine={false}
                   />
@@ -216,6 +214,18 @@ export function ProgressScreen({ data }: { data: MercuryData }) {
             Ainda não há dados suficientes para calcular este mês.
           </p>
         )}
+      </section>
+
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3" aria-label="Totais do mês">
+        {[
+          ['Hábitos', `${radarHabits.filter(item => item.done).length}/${radarHabits.length}`],
+          ['Passos', radarAvailableDays.reduce((sum,day)=>sum+(data.stepsByDay[day]||0),0).toLocaleString('pt-BR')],
+          ['Água', `${(radarAvailableDays.reduce((sum,day)=>sum+waterTotalForDay(data,day),0)/1000).toLocaleString('pt-BR')} L`],
+          ['Foco', `${Math.round(focusMinutes)} min`],
+          ['Treinos', radarWorkouts.filter(item=>item.done).length],
+          ['kcal', radarAvailableDays.reduce((sum,day)=>sum+workoutCaloriesTotal(data, day),0)],
+        ].map(([label,value])=><div key={label} className="rounded-[24px] border border-white/15 bg-[#0a0a0a] p-5"><p className="text-2xl font-extrabold text-white">{value}</p><p className="mt-2 text-sm text-white/50">{label}</p></div>)}
+        <p className="col-span-2 text-xs text-white/50 sm:col-span-3">Passos sincronizados pelo aplicativo.</p>
       </section>
 
       <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/15 p-2">

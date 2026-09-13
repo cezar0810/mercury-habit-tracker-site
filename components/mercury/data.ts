@@ -19,10 +19,11 @@ import {
 export type Tab = "inicio" | "habitos" | "planejar" | "rotina" | "foco" | "progresso";
 
 export const tabs: Array<{ id: Tab; label: string; icon: LucideIcon }> = [
-  { id: "inicio", label: "Hoje", icon: Home },
-  { id: "rotina", label: "Rotina", icon: Grid2X2 },
+  { id: "inicio", label: "Início", icon: Home },
+  { id: "habitos", label: "Hábitos", icon: Grid2X2 },
+  { id: "progresso", label: "Relatório", icon: ChartNoAxesCombined },
+  { id: "planejar", label: "Planejar", icon: CalendarDays },
   { id: "foco", label: "Foco", icon: TimerReset },
-  { id: "progresso", label: "Progresso", icon: ChartNoAxesCombined },
 ];
 
 export const habitRows = [

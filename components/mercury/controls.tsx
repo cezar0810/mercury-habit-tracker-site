@@ -43,7 +43,7 @@ export function BottomNavigation({
   return (
     <nav
       aria-label="Navegação principal"
-      className="mx-2 mb-3 grid grid-cols-4 rounded-[25px] bg-[#0b0c0d] px-1 py-1.5 shadow-[0_-8px_36px_rgba(0,0,0,0.3)] ring-1 ring-white/[0.025] sm:mx-4 sm:mb-4"
+      className="mx-2 mb-3 grid grid-cols-5 rounded-[25px] bg-[#0b0c0d] px-1 py-1.5 shadow-[0_-8px_36px_rgba(0,0,0,0.3)] ring-1 ring-white/[0.025] sm:mx-4 sm:mb-4"
     >
       {tabs.map((item) => {
         const Icon = item.icon;
@@ -54,7 +54,7 @@ export function BottomNavigation({
             key={item.id}
             onClick={() => onChange(item.id)}
             className={
-              "flex min-h-14 flex-col items-center justify-center gap-1 rounded-[20px] text-[11px] font-medium transition " +
+              "flex min-h-14 flex-col items-center justify-center gap-1 rounded-[20px] text-[10px] sm:text-[11px] font-medium transition " +
               (active
                 ? "bg-[#112b58] text-[#347cf6]"
                 : "text-white/55 hover:bg-white/[0.035] hover:text-white/85")

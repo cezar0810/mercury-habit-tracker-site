@@ -1,3 +1,4 @@
+import { flatten, changes } from "@/lib/sync-protocol";
 import {
   blankMercuryData,
   cleanMercuryData,
@@ -31,7 +32,11 @@ export function readMercuryData() {
 
 export function writeMercuryData(data: MercuryData) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(MERCURY_STORAGE_KEY, JSON.stringify(data));
+  const serialized = JSON.stringify(data);
+  if (window.localStorage.getItem(MERCURY_STORAGE_KEY) === serialized) return;
+  const before = JSON.parse(window.localStorage.getItem(MERCURY_STORAGE_KEY) || "{}");
+  window.localStorage.setItem(MERCURY_STORAGE_KEY, serialized);
+  window.dispatchEvent(new CustomEvent("mercury-local-change", { detail: changes(flatten(before), flatten(data)) }));
 }
 
 function workoutHabitTitle(name: string) {
@@ -48,7 +53,7 @@ export function workoutHabitId(workoutId: string) {
 function workoutHabit(workout: WorkoutIdentity, previous?: Habit, day = dateKey(new Date())): Habit {
   return {
     ...previous,
-    id: workoutHabitId(workout.id),
+    id: previous?.id || workoutHabitId(workout.id),
     title: workoutHabitTitle(workout.name),
     emoji: previous?.emojiMode === "custom" ? previous.emoji : "🏋️",
     source: "workout",
@@ -98,9 +103,10 @@ export function withCompletedWorkout(
       ...data.completions,
       [day]: { ...(data.completions[day] || {}), [habit.id]: true },
     },
-    workoutCaloriesByDay: {
-      ...data.workoutCaloriesByDay,
-      [day]: (data.workoutCaloriesByDay[day] || 0) + (alreadyCompleted ? 0 : Math.max(0, Math.round(calories))),
+    workoutDone: { ...data.workoutDone, [day]: { ...data.workoutDone?.[day], [workout.id]: true } },
+    workoutCaloriesByCompletion: {
+      ...data.workoutCaloriesByCompletion,
+      [day]: { ...data.workoutCaloriesByCompletion?.[day], [workout.id]: data.workoutCaloriesByCompletion?.[day]?.[workout.id] ?? (alreadyCompleted ? 0 : Math.max(0, Math.round(calories))) },
     },
   };
 }

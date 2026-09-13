@@ -1,4 +1,5 @@
 "use client";
+import { useMercuryData } from "./use-mercury-data";
 
 import {
   Download,
@@ -61,8 +62,7 @@ type DeleteRequest =
 export function MercuryWebApp() {
   const [tab, setTab] = useState<Tab>("inicio");
   const [routineView, setRoutineView] = useState("habitos");
-  const [data, setData] = useState<MercuryData>({ ...blankMercuryData });
-  const [hydrated, setHydrated] = useState(false);
+  const [data, setData, hydrated] = useMercuryData();
   const [, setCalendarDay] = useState(() => dateKey(new Date()));
   const [viewMonth, setViewMonth] = useState(
     () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
@@ -80,23 +80,9 @@ export function MercuryWebApp() {
   );
 
   useEffect(() => {
-    setData(readMercuryData());
-    setHydrated(true);
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key === MERCURY_STORAGE_KEY) setData(readMercuryData());
-    };
-    window.addEventListener("storage", handleStorage);
-    const refresh = () => { setData(readMercuryData()); setCalendarDay(dateKey(new Date())); };
-    window.addEventListener("pageshow", refresh);
-    const clock = window.setInterval(() => setCalendarDay(dateKey(new Date())), 30_000);
-    return () => { window.removeEventListener("storage", handleStorage); window.removeEventListener("pageshow", refresh); window.clearInterval(clock); };
+    const clock = window.setInterval(() => setCalendarDay(dateKey(new Date())), 30000);
+    return () => clearInterval(clock);
   }, []);
-
-  useEffect(() => {
-    if (hydrated) {
-      writeMercuryData(data);
-    }
-  }, [data, hydrated]);
 
   const saveInitialName = (event: FormEvent) => {
     event.preventDefault();
@@ -349,7 +335,7 @@ export function MercuryWebApp() {
     screen = (
       <InicioScreen
         data={data}
-        onRoutine={() => setTab("rotina")}
+        onRoutine={() => setTab("habitos")}
         onProgress={() => setTab("progresso")}
         onHabit={toggleHabit}
         onTask={toggleTask}
@@ -625,9 +611,9 @@ export function MercuryWebApp() {
                 className="mt-2 w-full rounded-xl border border-white/[0.14] bg-black/30 px-4 py-3 text-[15px] outline-none focus:border-[#347cf6]"
               >
                 <option value="">Selecione uma opção</option>
-                <option value="Masculino">Masculino</option>
-                <option value="Feminino">Feminino</option>
-                <option value="Prefiro não informar">Prefiro não informar</option>
+                <option value="male">Masculino</option>
+                <option value="female">Feminino</option>
+                <option value="other">Prefiro não informar</option>
               </select>
             </div>
             <div>
@@ -644,9 +630,10 @@ export function MercuryWebApp() {
                 className="mt-2 w-full rounded-xl border border-white/[0.14] bg-black/30 px-4 py-3 text-[15px] outline-none focus:border-[#347cf6]"
               >
                 <option value="">Escolha sua classe</option>
-                <option value="Mago">Mago · estudos e foco</option>
-                <option value="Guerreiro">Guerreiro · saúde e força</option>
-                <option value="Curandeiro">Curandeiro · bem-estar</option>
+                <option value="mage">Mago · estudos e foco</option>
+                <option value="knight">Guerreiro · saúde e força</option>
+                <option value="cleric">Curandeiro · bem-estar</option>
+                <option value="ranger">Arqueiro · constância</option>
               </select>
             </div>
             <p className="text-xs leading-5 text-white/48">

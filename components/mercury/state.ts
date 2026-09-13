@@ -32,6 +32,9 @@ export type PlannerTask = {
 };
 
 export type MercuryData = {
+  workoutCaloriesByCompletion?: Record<string, Record<string, number>>;
+  workoutDone?: Record<string, Record<string, boolean>>;
+  stepsByDay: Record<string, number>;
   schemaVersion: 2;
   trackingSince: string;
   name: string;
@@ -61,6 +64,7 @@ export const plannerPeriods: PlannerPeriod[] = [
 ];
 
 export const blankMercuryData: MercuryData = {
+  stepsByDay: {},
   schemaVersion: 2,
   trackingSince: "",
   name: "",
@@ -129,6 +133,7 @@ export function cleanMercuryData(value: unknown): MercuryData {
           return [{ from: String(revision.from), weekdays: [...new Set(revision.weekdays.filter((day): day is number => Number.isInteger(day) && day >= 0 && day <= 6))] }];
         }).sort((a, b) => a.from.localeCompare(b.from)) : [];
         return [{
+          ...habit,
           id,
           title,
           emoji: cleanText(habit.emoji, 32) || habitEmoji(title),
@@ -171,18 +176,18 @@ export function cleanMercuryData(value: unknown): MercuryData {
       if (!Number.isFinite(amount) || amount <= 0) return [];
       return [{
         id: cleanText(entry.id, 100) || `agua-${day}-${index}`,
-        amountMl: Math.min(2000, Math.max(10, Math.round(amount))),
+        amountMl: Math.min(5000, Math.max(1, Math.round(amount))),
         recordedAt: cleanText(entry.recordedAt, 40) || new Date().toISOString(),
       }];
     });
   });
 
   const waterGoal = Number(saved.waterGoalMl);
-  const sanitizedGoal = Number.isFinite(waterGoal) ? Math.min(6000, Math.max(500, Math.round(waterGoal))) : 2000;
+  const sanitizedGoal = Number.isFinite(waterGoal) ? Math.min(10000, Math.max(250, Math.round(waterGoal))) : 2000;
   const waterGoalHistory = Array.isArray(saved.waterGoalHistory) ? saved.waterGoalHistory.flatMap(item => {
     const revision = cleanRecord(item);
     return validDay(revision.from) && Number.isFinite(Number(revision.goalMl))
-      ? [{ from: String(revision.from), goalMl: Math.min(6000, Math.max(500, Math.round(Number(revision.goalMl)))) }] : [];
+      ? [{ from: String(revision.from), goalMl: Math.min(10000, Math.max(250, Math.round(Number(revision.goalMl)))) }] : [];
   }).sort((a, b) => a.from.localeCompare(b.from)) : [];
   const workoutCompletionsByDay: Record<string, string[]> = {};
   Object.entries(cleanRecord(saved.workoutCompletionsByDay)).forEach(([day, ids]) => {
@@ -204,12 +209,14 @@ export function cleanMercuryData(value: unknown): MercuryData {
   const weight = Number(saved.weightKg);
   const height = Number(saved.heightCm);
   return {
+    ...saved,
+    stepsByDay: Object.fromEntries(Object.entries(cleanRecord(saved.stepsByDay)).filter(([day, n]) => validDay(day) && typeof n === "number" && Number.isFinite(n) && n >= 0)) as Record<string, number>,
     schemaVersion: 2,
     trackingSince,
     name: cleanText(saved.name, 28),
     goal: cleanText(saved.goal, 60),
-    gender: cleanText(saved.gender, 40),
-    characterClass: cleanText(saved.characterClass, 40),
+    gender: ({Masculino:"male",Feminino:"female","Prefiro não informar":"other"} as Record<string,string>)[String(saved.gender)] || cleanText(saved.gender,40),
+    characterClass: ({Mago:"mage",Guerreiro:"knight",Curandeiro:"cleric",Arqueiro:"ranger"} as Record<string,string>)[String(saved.characterClass)] || cleanText(saved.characterClass,40),
     habits,
     completions,
     plannerTasks: Array.isArray(saved.plannerTasks) ? saved.plannerTasks as PlannerTask[] : [],
@@ -304,4 +311,8 @@ export function greeting() {
   if (hour < 12) return "Bom dia";
   if (hour < 18) return "Boa tarde";
   return "Boa noite";
+}
+
+export function workoutCaloriesTotal(data: MercuryData, day: string) {
+  return (data.workoutCaloriesByDay[day] || 0) + Object.values(data.workoutCaloriesByCompletion?.[day] || {}).reduce((sum, value) => sum + value, 0);
 }
