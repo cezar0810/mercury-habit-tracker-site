@@ -60,6 +60,7 @@ import {
 import { withPhysicalProfile } from "./physical-profile-dialog";
 import { CloudCheck } from "./sync-status";
 import { useMercurySync } from "./sync";
+import { AuthSplash, LoginGate } from "./login-gate";
 
 type DeleteRequest =
   | { type: "habit"; id: string; title: string }
@@ -74,6 +75,7 @@ export function MercuryWebApp() {
 }
 
 function MercuryWebAppInner() {
+  const { user, loading: authLoading } = useMercuryAuth();
   const [tab, setTab] = useState<Tab>("inicio");
   const [routineView, setRoutineView] = useState("habitos");
   const [data, setData] = useState<MercuryData>({ ...blankMercuryData });
@@ -333,7 +335,7 @@ function MercuryWebAppInner() {
 
   // A hora local e os dados do navegador só existem no cliente. Renderizar
   // uma moldura estável até a leitura evita texto diferente entre SSR e React.
-  if (!hydrated) {
+  if (!hydrated || authLoading) {
     return (
       <main className="grid min-h-screen place-items-center bg-black text-white">
         <div className="flex items-center gap-3 text-sm text-white/60">
@@ -342,6 +344,11 @@ function MercuryWebAppInner() {
         </div>
       </main>
     );
+  }
+
+  // Portão de login: o acesso ao app exige conta Google (mesma do app Flutter).
+  if (!user) {
+    return <LoginGate />;
   }
 
   let screen = (
