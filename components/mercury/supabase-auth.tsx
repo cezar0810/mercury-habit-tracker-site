@@ -26,9 +26,11 @@ function getClient(): SupabaseClient | null {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        // Nenhuma mágica de URL: a troca do código PKCE é feita de forma
-        // explícita e ÚNICA pelo callback (/auth/callback), com verifier
-        // gerenciado por nós (ver PKCE_VERIFIER_KEY abaixo).
+        // Fluxo PKCE documentado do Supabase: signInWithOAuth gera e guarda
+        // o code_verifier; a troca acontece UMA única vez no callback via
+        // exchangeCodeForSession(code). detectSessionInUrl fica desligado
+        // para o client NÃO disputar a troca com o callback (causa do erro
+        // "invalid flow state" observado antes).
         detectSessionInUrl: false,
         flowType: "pkce",
         storageKey: "mercury-supabase-auth",
@@ -36,51 +38,6 @@ function getClient(): SupabaseClient | null {
     });
   }
   return sharedClient;
-}
-
-// Chave onde o code_verifier do fluxo PKCE fica guardado durante o
-// redirecionamento Google → Supabase → site. Gravamos em localStorage E
-// sessionStorage (o callback lê a primeira que existir).
-export const PKCE_VERIFIER_KEY = "mercury-pkce-verifier";
-
-export function savePkceVerifier(verifier: string) {
-  try {
-    window.localStorage.setItem(PKCE_VERIFIER_KEY, verifier);
-  } catch {
-    /* storage indisponível — seguimos com o sessionStorage */
-  }
-  try {
-    window.sessionStorage.setItem(PKCE_VERIFIER_KEY, verifier);
-  } catch {
-    /* idem */
-  }
-}
-
-export function readPkceVerifier(): string | null {
-  try {
-    const fromLocal = window.localStorage.getItem(PKCE_VERIFIER_KEY);
-    if (fromLocal) return fromLocal;
-  } catch {
-    /* segue para o sessionStorage */
-  }
-  try {
-    return window.sessionStorage.getItem(PKCE_VERIFIER_KEY);
-  } catch {
-    return null;
-  }
-}
-
-export function clearPkceVerifier() {
-  try {
-    window.localStorage.removeItem(PKCE_VERIFIER_KEY);
-  } catch {
-    /* ok */
-  }
-  try {
-    window.sessionStorage.removeItem(PKCE_VERIFIER_KEY);
-  } catch {
-    /* ok */
-  }
 }
 
 type SupabaseContextValue = {
@@ -134,14 +91,6 @@ function sessionUser(session: Session | null): MercuryUser | null {
   };
 }
 
-function base64url(bytes: Uint8Array): string {
-  let binary = "";
-  bytes.forEach((byte) => {
-    binary += String.fromCharCode(byte);
-  });
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
 export function useMercuryAuth() {
   const { client, configured } = useMercurySupabase();
   const [user, setUser] = useState<MercuryUser | null>(null);
@@ -174,33 +123,19 @@ export function useMercuryAuth() {
     };
   }, [client]);
 
-  // Login com Google — PKCE MANUAL:
-  // 1. geramos verifier/challenge nós mesmos;
-  // 2. gravamos o verifier em localStorage + sessionStorage;
-  // 3. redirecionamos ao authorize do Supabase com S256.
-  // O callback troca o código direto em /auth/v1/token?grant_type=pkce.
+  // Fluxo documentado do Supabase: signInWithOAuth gerencia o PKCE completo
+  // (gera o verifier, grava no storage do client e monta o authorize).
   const signInWithGoogle = useMemo(() => {
     return async () => {
-      if (!supabaseConfigured) return;
-      const verifierBytes = crypto.getRandomValues(new Uint8Array(32));
-      const verifier = base64url(verifierBytes);
-      const challengeBytes = await crypto.subtle.digest(
-        "SHA-256",
-        new TextEncoder().encode(verifier),
-      );
-      const challenge = base64url(new Uint8Array(challengeBytes));
-
-      savePkceVerifier(verifier);
-
+      if (!client) return;
       const redirectTo = new URL("/auth/callback", window.location.origin).toString();
-      const authorize = new URL(`${supabaseUrlResolved}/auth/v1/authorize`);
-      authorize.searchParams.set("provider", "google");
-      authorize.searchParams.set("redirect_to", redirectTo);
-      authorize.searchParams.set("code_challenge", challenge);
-      authorize.searchParams.set("code_challenge_method", "s256");
-      window.location.href = authorize.toString();
+      const { error } = await client.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo },
+      });
+      if (error) throw error;
     };
-  }, []);
+  }, [client]);
 
   const signOut = useMemo(() => {
     return async () => {

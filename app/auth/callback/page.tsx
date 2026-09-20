@@ -4,25 +4,16 @@ import { useEffect, useRef, useState } from "react";
 import {
   MercurySupabaseProvider,
   useMercurySupabase,
-  readPkceVerifier,
-  clearPkceVerifier,
 } from "@/components/mercury/supabase-auth";
 import { AuthSplash } from "@/components/mercury/login-gate";
-import {
-  supabaseAnonKeyResolved,
-  supabaseConfigured,
-  supabaseUrlResolved,
-} from "@/lib/supabase";
 
-// O Google volta para este endereço com ?code=… (fluxo PKCE).
+// O Google volta para este endereço com ?code=… (fluxo PKCE documentado).
 //
-// A troca do código é feita AQUI, de forma única e explícita, direto no
-// endpoint /auth/v1/token?grant_type=pkce, com o code_verifier que NÓS
-// geramos no login (localStorage/sessionStorage) — sem depender dos
-// mecanismos internos do supabase-js que falharam nos testes anteriores.
-//
-// Depois de obter os tokens, alimentamos a sessão do client singleton
-// (setSession) — o app abre já logado. Qualquer falha aparece na tela.
+// A troca acontece UMA única vez, com a API oficial do Supabase:
+//   exchangeCodeForSession(code)  ← apenas o CÓDIGO, não a URL inteira.
+// O client (singleton, mesmo storage) lê o code_verifier que o próprio
+// signInWithOAuth gravou no início do fluxo. Depois provamos que a sessão
+// existe e só então voltamos ao app. Falhas aparecem na tela.
 export default function AuthCallbackPage() {
   return (
     <MercurySupabaseProvider>
@@ -37,7 +28,7 @@ function AuthCallbackInner() {
   const redirected = useRef(false);
 
   useEffect(() => {
-    if (!client || !supabaseConfigured) return;
+    if (!client) return;
     let active = true;
 
     const finish = async () => {
@@ -46,65 +37,17 @@ function AuthCallbackInner() {
         const existing = (await client.auth.getSession()).data.session;
 
         if (!existing) {
-          const params = new URLSearchParams(window.location.search);
-          const code = params.get("code");
+          const code = new URLSearchParams(window.location.search).get("code");
           if (!code) {
             throw new Error(
               "O Google não devolveu o código de autorização. Tente entrar de novo.",
             );
           }
 
-          const verifier = readPkceVerifier();
-          if (!verifier) {
-            throw new Error(
-              "O verifier do fluxo de login não foi encontrado neste navegador. " +
-                "Isso acontece se o login começou em outra janela/aba ou se o " +
-                "armazenamento foi limpo no meio do processo. Tente de novo, " +
-                "na mesma janela.",
-            );
-          }
-
-          // Troca ÚNICA e explícita: POST /auth/v1/token?grant_type=pkce.
-          const tokenRes = await fetch(
-            `${supabaseUrlResolved}/auth/v1/token?grant_type=pkce`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                apikey: supabaseAnonKeyResolved,
-              },
-              body: JSON.stringify({
-                auth_code: code,
-                code_verifier: verifier,
-              }),
-            },
-          );
-
-          if (!tokenRes.ok) {
-            const detail = await tokenRes.json().catch(() => null);
-            const message =
-              (detail as { error_description?: string; msg?: string } | null)
-                ?.error_description ??
-              (detail as { msg?: string } | null)?.msg ??
-              `HTTP ${tokenRes.status}`;
-            throw new Error(`Supabase recusou o código (${message}).`);
-          }
-
-          const tokens = (await tokenRes.json()) as {
-            access_token: string;
-            refresh_token: string;
-            expires_in?: number;
-          };
-
-          // Alimenta a sessão do client singleton — o app abre logado.
-          const { error: setSessionError } = await client.auth.setSession({
-            access_token: tokens.access_token,
-            refresh_token: tokens.refresh_token,
-          });
-          if (setSessionError) throw setSessionError;
+          // API oficial — apenas o código, uma única vez.
+          const { error: exchangeError } = await client.auth.exchangeCodeForSession(code);
+          if (exchangeError) throw exchangeError;
         }
-
-        clearPkceVerifier();
 
         // Prova real: sessão precisa existir antes de voltar ao app.
         const finalSession = (await client.auth.getSession()).data.session;
@@ -120,7 +63,6 @@ function AuthCallbackInner() {
         }
       } catch (err) {
         if (!active) return;
-        clearPkceVerifier();
         setError(err instanceof Error ? err.message : "Falha desconhecida no login.");
       }
     };
