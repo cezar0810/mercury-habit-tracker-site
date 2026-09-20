@@ -9,8 +9,8 @@ export async function GET(request: NextRequest) {
   const successUrl = new URL(redirectPath, url.origin);
 
   if (!code) {
-    const errorUrl = new URL("/login", url.origin);
-    errorUrl.searchParams.set("error", "oauth_code_missing");
+    const errorUrl = new URL("/", url.origin);
+    errorUrl.searchParams.set("auth_error", "oauth_code_missing");
     return NextResponse.redirect(errorUrl);
   }
 
@@ -19,8 +19,8 @@ export async function GET(request: NextRequest) {
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
-    const errorUrl = new URL("/login", url.origin);
-    errorUrl.searchParams.set("error", "oauth_callback_failed");
+    const errorUrl = new URL("/", url.origin);
+    errorUrl.searchParams.set("auth_error", "oauth_callback_failed");
     return NextResponse.redirect(errorUrl);
   }
 

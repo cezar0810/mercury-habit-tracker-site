@@ -6,7 +6,7 @@ import { useMercuryAuth } from "./supabase-auth";
 // Portão de login: exibido enquanto o usuário não está autenticado.
 // Minimalista, seguindo o tema do app (fundo preto, azul #347cf6, bordas suaves).
 export function LoginGate() {
-  const { signInWithGoogle } = useMercuryAuth();
+  const { signInWithGoogle, authError } = useMercuryAuth();
 
   return (
     <main className="grid min-h-dvh place-items-center bg-black px-5 text-white">
@@ -20,6 +20,12 @@ export function LoginGate() {
         <p className="mt-2 text-sm leading-6 text-white/55">
           Entre com sua conta Google para acessar seu rotina sincronizada entre o app e o site.
         </p>
+
+        {authError && (
+          <p className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs leading-5 text-red-300">
+            {authError}
+          </p>
+        )}
 
         <button
           type="button"

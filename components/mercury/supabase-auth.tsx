@@ -1,8 +1,8 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { createBrowserClient, type SupabaseClient } from "@supabase/ssr";
-import type { Session } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
+import type { Session, SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAnonKeyResolved, supabaseConfigured, supabaseUrlResolved } from "@/lib/supabase";
 
 let sharedClient: SupabaseClient | null = null;
@@ -57,6 +57,7 @@ export function useMercuryAuth() {
   const { client, configured } = useMercurySupabase();
   const [user, setUser] = useState<MercuryUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!client) {
@@ -64,15 +65,29 @@ export function useMercuryAuth() {
       return;
     }
     let active = true;
-    const { data: subscription } = client.auth.onAuthStateChange((_event, session) => {
-      if (!active) return;
-      setUser(sessionUser(session));
-      setLoading(false);
-    });
-    void client.auth.getSession().then(({ data }) => {
+    const { data: subscription } = client.auth.onAuthStateChange(
+      (_event: string, session: Session | null) => {
+        if (!active) return;
+        setUser(sessionUser(session));
+        setLoading(false);
+      },
+    );
+    void client.auth.getSession().then(({ data }: { data: { session: Session | null } }) => {
       if (!active) return;
       setUser(sessionUser(data.session));
       setLoading(false);
+      // O route handler de callback volta para cá em caso de falha com
+      // ?auth_error=... — mostramos o motivo inline na tela de login.
+      const callbackError = new URLSearchParams(window.location.search).get("auth_error");
+      if (callbackError) {
+        setAuthError(
+          callbackError === "oauth_code_missing"
+            ? "O Google não devolveu o código de autorização. Tente entrar de novo."
+            : "O servidor não conseguiu concluir o login. O código pode ter " +
+              "expirado ou sido usado — tente entrar de novo.",
+        );
+        window.history.replaceState(null, "", window.location.pathname);
+      }
     });
     return () => {
       active = false;
@@ -95,5 +110,5 @@ export function useMercuryAuth() {
     await client.auth.signOut();
   }, [client]);
 
-  return { client, configured, user, loading, signInWithGoogle, signOut };
+  return { client, configured, user, loading, authError, signInWithGoogle, signOut };
 }
