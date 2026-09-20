@@ -28,6 +28,11 @@ import {
 } from "@/components/ui/dialog";
 import { BottomNavigation } from "./controls";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AccountControl } from "./account-control";
+import {
+  MercurySupabaseProvider,
+  useMercuryAuth,
+} from "./supabase-auth";
 import { ProgressScreen } from "./progress-screen";
 import { activeHabits, allWeekdays, habitLink, scheduleHabit, setHabitLink } from "./routine";
 import { recognizeHabit } from "./habit-recognition";
@@ -53,12 +58,22 @@ import {
   writeMercuryData,
 } from "./mercury-storage";
 import { withPhysicalProfile } from "./physical-profile-dialog";
+import { CloudCheck } from "./sync-status";
+import { useMercurySync } from "./sync";
 
 type DeleteRequest =
   | { type: "habit"; id: string; title: string }
   | { type: "task"; id: string; title: string };
 
 export function MercuryWebApp() {
+  return (
+    <MercurySupabaseProvider>
+      <MercuryWebAppInner />
+    </MercurySupabaseProvider>
+  );
+}
+
+function MercuryWebAppInner() {
   const [tab, setTab] = useState<Tab>("inicio");
   const [routineView, setRoutineView] = useState("habitos");
   const [data, setData] = useState<MercuryData>({ ...blankMercuryData });
@@ -97,6 +112,10 @@ export function MercuryWebApp() {
       writeMercuryData(data);
     }
   }, [data, hydrated]);
+
+  // Sincronização com o Supabase (pull inicial, push com debounce e
+  // pull periódico de segurança). Sem login, é um no-op transparente.
+  const syncState = useMercurySync(data, (next) => setData({ ...next }));
 
   const saveInitialName = (event: FormEvent) => {
     event.preventDefault();
@@ -418,6 +437,7 @@ export function MercuryWebApp() {
             </div>
           </div>
           <div className="ml-3 flex shrink-0 items-center gap-2">
+            <AccountControl currentName={data.name} />
             <button
               type="button"
               onClick={openSettings}
@@ -516,7 +536,10 @@ export function MercuryWebApp() {
       </section>
 
       <footer className="relative hidden border-t border-white/[0.07] px-5 py-7 text-center text-xs text-white/38 lg:block">
-        Mercury Habit Tracker · seus dados ficam salvos neste navegador
+        <div className="flex flex-col items-center gap-2">
+          <CloudCheck syncState={syncState} />
+          <span>Mercury Habit Tracker · seus dados ficam salvos neste navegador</span>
+        </div>
       </footer>
 
       <Dialog

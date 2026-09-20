@@ -1,0 +1,320 @@
+/* ============================================================
+   Assistente Híbrido — Identidade visual retrô / minimalista 2D
+   Paleta: papel screen-printed + carvão #3A3430
+   ============================================================ */
+
+:root {
+  --ink: #3A3430;             /* carvão: texto, divisores, bordas */
+  --paper: #F2ECE0;           /* papel quente */
+  --paper-edge: #E8DFCC;      /* papel mais escuro (bordas de bloco) */
+  --grain: rgba(58, 52, 48, 0.04);
+
+  --accent-offline: #A8BFA0;  /* pastel sálvia  — Modo Básico */
+  --accent-online:  #E4572E;  /* vibrante laranja — Modo Work */
+
+  --font-mono: "IBM Plex Mono", "Courier New", Courier, monospace;
+  --space: 1.25rem;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: none;
+}
+
+/* Textura sutil de papel screen-printed */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    radial-gradient(var(--grain) 1px, transparent 1px),
+    radial-gradient(var(--grain) 1px, transparent 1px);
+  background-size: 4px 4px, 7px 7px;
+  background-position: 0 0, 2px 3px;
+  opacity: 0.55;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- Contêiner central (folha impressa) ---------- */
+.paper {
+  position: relative;
+  z-index: 1;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 3rem;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- HEADER ---------- */
+header {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.app-title {
+  font-size: 1.5rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.subtitle {
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  opacity: 0.7;
+  font-style: italic;
+}
+
+/* Divisor ornamental — linhas + marca central em #3A3430 */
+.ornamental-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.25rem 0 0.5rem;
+}
+
+.orn-line {
+  flex: 1;
+  border-top: 3px double var(--ink);
+}
+
+.orn-mark {
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+/* Selo de modo no header */
+.mode-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.8rem;
+  border: 2px solid var(--ink);
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: var(--paper-edge);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.mode-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink);
+  display: inline-block;
+}
+
+.mode-badge--offline { background: var(--accent-offline); }
+.mode-badge--offline .mode-dot { background: var(--paper); }
+
+.mode-badge--online { background: var(--accent-online); color: var(--paper); }
+.mode-badge--online .mode-dot {
+  background: var(--paper);
+  animation: pulse 1.4s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1);   opacity: 1; }
+  50%      { transform: scale(1.3); opacity: 0.55; }
+}
+
+/* ---------- NAV (toggle de modo) ---------- */
+nav {
+  margin: 1.5rem 0;
+}
+
+.toggle-group {
+  display: flex;
+  border: 2px solid var(--ink);
+  width: fit-content;
+  margin: 0 auto;
+}
+
+.toggle-btn {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.6rem 1.4rem;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.toggle-btn + .toggle-btn {
+  border-left: 2px solid var(--ink);
+}
+
+.toggle-btn:hover {
+  background: var(--paper-edge);
+}
+
+.toggle-btn.is-active {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+#btn-online.is-active {
+  background: var(--accent-online);
+  color: var(--paper);
+}
+
+.mode-hint {
+  text-align: center;
+  margin-top: 0.6rem;
+  font-size: 0.75rem;
+  opacity: 0.65;
+  font-style: italic;
+}
+
+/* ---------- MAIN (histórico) ---------- */
+main {
+  flex: 1;
+  border-top: 3px double var(--ink);
+  border-bottom: 3px double var(--ink);
+  padding: 1.5rem 0.25rem;
+  overflow-y: auto;
+  max-height: 55vh;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.msg {
+  border: 2px solid var(--ink);
+  padding: 0.9rem 1.1rem;
+  background: var(--paper);
+  font-size: 0.9rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.msg--user {
+  margin-left: 10%;
+  background: var(--paper-edge);
+}
+
+.msg--bot {
+  margin-right: 10%;
+}
+
+.msg--error {
+  border-color: var(--accent-online);
+  color: #8C2F1B;
+}
+
+.msg--system {
+  border: none;
+  text-align: center;
+  font-style: italic;
+  opacity: 0.6;
+}
+
+.msg-meta {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+  opacity: 0.7;
+  border-bottom: 1px solid var(--ink);
+  padding-bottom: 0.35rem;
+}
+
+.typing::after {
+  content: "▌";
+  animation: blink 1s steps(1) infinite;
+}
+
+@keyframes blink { 50% { opacity: 0; } }
+
+/* ---------- FOOTER (input) ---------- */
+footer {
+  margin-top: 1.5rem;
+}
+
+.input-bar {
+  display: flex;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+}
+
+#prompt-input {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  padding: 0.85rem 1rem;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  outline: none;
+}
+
+#prompt-input::placeholder {
+  color: var(--ink);
+  opacity: 0.45;
+  font-style: italic;
+}
+
+#send-btn {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0 1.5rem;
+  border: none;
+  border-left: 2px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+#send-btn:hover:not(:disabled) { background: #26221F; }
+#send-btn:disabled { opacity: 0.5; cursor: wait; }
+
+.footer-note {
+  text-align: center;
+  margin-top: 0.75rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  opacity: 0.6;
+}
+
+/* ---------- Responsivo ---------- */
+@media (max-width: 560px) {
+  .app-title { font-size: 1.1rem; }
+  .header-top { flex-direction: column; gap: 0.5rem; }
+  .msg--user { margin-left: 0; }
+  .msg--bot { margin-right: 0; }
+  main { max-height: 48vh; }
+}

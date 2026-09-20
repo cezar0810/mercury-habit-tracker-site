@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Assistente Híbrido</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="paper">
+
+    <!-- ===================== HEADER ===================== -->
+    <header>
+      <div class="header-top">
+        <h1 class="app-title">Assistente Híbrido</h1>
+        <span class="mode-badge mode-badge--offline" id="mode-badge" role="status" aria-live="polite">
+          <span class="mode-dot" aria-hidden="true"></span>
+          <span id="mode-badge-text">OFFLINE</span>
+        </span>
+      </div>
+      <div class="ornamental-divider" aria-hidden="true">
+        <span class="orn-line"></span>
+        <span class="orn-mark">✳</span>
+        <span class="orn-line"></span>
+      </div>
+      <p class="subtitle">A letterpress for your thoughts — local or on duty.</p>
+    </header>
+
+    <!-- ===================== NAV ===================== -->
+    <nav aria-label="Alternância de modo">
+      <div class="toggle-group" role="tablist" aria-label="Modo do assistente">
+        <button
+          type="button"
+          id="btn-offline"
+          class="toggle-btn is-active"
+          role="tab"
+          aria-selected="true"
+          aria-controls="chat"
+          data-mode="OFFLINE">
+          Modo Básico
+        </button>
+        <button
+          type="button"
+          id="btn-online"
+          class="toggle-btn"
+          role="tab"
+          aria-selected="false"
+          aria-controls="chat"
+          data-mode="ONLINE">
+          Modo Work
+        </button>
+      </div>
+      <p class="mode-hint" id="mode-hint">
+        Básico: responde via Ollama local, sem internet.
+      </p>
+    </nav>
+
+    <!-- ===================== MAIN ===================== -->
+    <main id="chat" aria-live="polite" aria-label="Histórico de mensagens">
+      <div class="msg msg--system" id="empty-state">
+        <p>───────</p>
+        <p>Selecione o modo e envie uma mensagem.</p>
+      </div>
+    </main>
+
+    <!-- ===================== FOOTER ===================== -->
+    <footer>
+      <form id="chat-form" class="input-bar" autocomplete="off">
+        <label class="sr-only" for="prompt-input">Sua mensagem</label>
+        <input
+          type="text"
+          id="prompt-input"
+          name="prompt"
+          placeholder="Escreva aqui…"
+          maxlength="8000"
+          required />
+        <button type="submit" id="send-btn">Enviar ↵</button>
+      </form>
+      <p class="footer-note">
+        Roteador de estado ativo: <strong id="footer-mode">OFFLINE</strong>
+      </p>
+    </footer>
+
+  </div>
+
+  <script src="/static/script.js"></script>
+</body>
+</html>
