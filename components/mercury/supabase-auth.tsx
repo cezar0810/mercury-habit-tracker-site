@@ -27,6 +27,7 @@ function getClient(): SupabaseClient | null {
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
+        flowType: "pkce",
         storageKey: "mercury-supabase-auth",
       },
     });
