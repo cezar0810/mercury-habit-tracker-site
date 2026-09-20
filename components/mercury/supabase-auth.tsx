@@ -26,7 +26,10 @@ function getClient(): SupabaseClient | null {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        detectSessionInUrl: true,
+        // A troca do código OAuth é feita EXCLUSIVAMENTE pelo callback
+        // (/auth/callback). Detecção automática aqui causaria dupla troca
+        // do código → "invalid flow state" no servidor.
+        detectSessionInUrl: false,
         flowType: "pkce",
         storageKey: "mercury-supabase-auth",
       },

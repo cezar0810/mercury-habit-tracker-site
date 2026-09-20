@@ -29,12 +29,12 @@ function AuthCallbackInner() {
 
     const finish = async () => {
       try {
-        // 1) O client pode já ter detectado a sessão na URL
-        //    (detectSessionInUrl). Checamos primeiro.
+        // Sessão já existente (usuário voltando ao callback já logado).
         let session = (await client.auth.getSession()).data.session;
 
-        // 2) Sem sessão: troca explícita do código PKCE.
         if (!session) {
+          // Troca ÚNICA e explícita do código PKCE. O client é criado com
+          // detectSessionInUrl: false, então nada mais disputa este código.
           const { error: exchangeError } = await client.auth.exchangeCodeForSession(
             window.location.href,
           );
