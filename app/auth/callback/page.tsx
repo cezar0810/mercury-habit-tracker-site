@@ -7,9 +7,13 @@ import {
 } from "@/components/mercury/supabase-auth";
 import { AuthSplash } from "@/components/mercury/login-gate";
 
-// O Google volta para este endereço com o código do OAuth (fluxo PKCE).
-// Só redirecionamos ao app DEPOIS de confirmar que a sessão existe de fato.
-// Se a troca falhar, o erro aparece na tela — nada é engolido em silêncio.
+// Fluxo implícito: o Google/Supabase devolve os tokens no fragmento da URL
+// (#access_token=…) — nunca vai ao servidor. O client (singleton, com
+// detectSessionInUrl: true) detecta e grava a sessão sozinho.
+//
+// Papel deste callback: esperar a detecção acontecer, PROVAR que a sessão
+// existe e só então voltar ao app. Qualquer falha aparece na tela — nada é
+// engolido em silêncio.
 export default function AuthCallbackPage() {
   return (
     <MercurySupabaseProvider>
@@ -26,40 +30,36 @@ function AuthCallbackInner() {
   useEffect(() => {
     if (!client) return;
     let active = true;
+    let tries = 0;
 
     const finish = async () => {
       try {
-        // Sessão já existente (usuário voltando ao callback já logado).
-        let session = (await client.auth.getSession()).data.session;
-
-        if (!session) {
-          // Troca ÚNICA e explícita do código PKCE. O client é criado com
-          // detectSessionInUrl: false, então nada mais disputa este código.
-          const { error: exchangeError } = await client.auth.exchangeCodeForSession(
-            window.location.href,
-          );
-          if (exchangeError) throw exchangeError;
-          session = (await client.auth.getSession()).data.session;
+        // Fluxo implícito: a detecção da URL acontece na inicialização do
+        // client. Damos até ~3s para o _saveSession completar, checando a
+        // cada 100ms — prova real antes de navegar.
+        while (active && tries < 30) {
+          const { data } = await client.auth.getSession();
+          if (data.session) break;
+          tries += 1;
+          await new Promise((resolve) => setTimeout(resolve, 100));
         }
 
-        // 3) Prova real: sem sessão aqui, não adianta voltar ao app.
-        if (!session) {
+        const { data } = await client.auth.getSession();
+        if (!data.session) {
           throw new Error(
-            "O Google autorizou o acesso, mas a sessão não foi criada. " +
-              "O código pode ter expirado — tente entrar de novo.",
+            "O Google autorizou o acesso, mas a sessão não chegou ao navegador. " +
+              "Verifique se o fluxo do provedor Google no Supabase está com " +
+              "\"Implicit flow\" habilitado e tente de novo.",
           );
         }
 
         if (active && !redirected.current) {
           redirected.current = true;
-          // Espera o storage gravar a sessão antes de navegar.
-          window.setTimeout(() => window.location.replace("/"), 200);
+          window.setTimeout(() => window.location.replace("/"), 150);
         }
       } catch (err) {
         if (!active) return;
-        setError(
-          err instanceof Error ? err.message : "Falha desconhecida no login.",
-        );
+        setError(err instanceof Error ? err.message : "Falha desconhecida no login.");
       }
     };
 

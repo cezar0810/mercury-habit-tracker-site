@@ -26,11 +26,12 @@ function getClient(): SupabaseClient | null {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        // A troca do código OAuth é feita EXCLUSIVAMENTE pelo callback
-        // (/auth/callback). Detecção automática aqui causaria dupla troca
-        // do código → "invalid flow state" no servidor.
-        detectSessionInUrl: false,
-        flowType: "pkce",
+        // Fluxo IMPLÍCITO: os tokens voltam no fragmento da URL
+        // (#access_token=…) e o próprio client os detecta. Elimina a
+        // dependência do code_verifier em localStorage — causa dos erros
+        // "invalid flow state" e "PKCE code verifier not found".
+        detectSessionInUrl: true,
+        flowType: "implicit",
         storageKey: "mercury-supabase-auth",
       },
     });
