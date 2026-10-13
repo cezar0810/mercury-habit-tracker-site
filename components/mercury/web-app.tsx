@@ -28,11 +28,6 @@ import {
 } from "@/components/ui/dialog";
 import { BottomNavigation } from "./controls";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AccountControl } from "./account-control";
-import {
-  MercurySupabaseProvider,
-  useMercuryAuth,
-} from "./supabase-auth";
 import { ProgressScreen } from "./progress-screen";
 import { activeHabits, allWeekdays, habitLink, scheduleHabit, setHabitLink } from "./routine";
 import { recognizeHabit } from "./habit-recognition";
@@ -58,24 +53,16 @@ import {
   writeMercuryData,
 } from "./mercury-storage";
 import { withPhysicalProfile } from "./physical-profile-dialog";
-import { CloudCheck } from "./sync-status";
-import { useMercurySync } from "./sync";
-import { AuthSplash, LoginGate } from "./login-gate";
 
 type DeleteRequest =
   | { type: "habit"; id: string; title: string }
   | { type: "task"; id: string; title: string };
 
 export function MercuryWebApp() {
-  return (
-    <MercurySupabaseProvider>
-      <MercuryWebAppInner />
-    </MercurySupabaseProvider>
-  );
+  return <MercuryWebAppInner />;
 }
 
 function MercuryWebAppInner() {
-  const { user, loading: authLoading } = useMercuryAuth();
   const [tab, setTab] = useState<Tab>("inicio");
   const [routineView, setRoutineView] = useState("habitos");
   const [data, setData] = useState<MercuryData>({ ...blankMercuryData });
@@ -114,10 +101,6 @@ function MercuryWebAppInner() {
       writeMercuryData(data);
     }
   }, [data, hydrated]);
-
-  // Sincronização com o Supabase (pull inicial, push com debounce e
-  // pull periódico de segurança). Sem login, é um no-op transparente.
-  const syncState = useMercurySync(data, (next) => setData({ ...next }));
 
   const saveInitialName = (event: FormEvent) => {
     event.preventDefault();
@@ -335,7 +318,7 @@ function MercuryWebAppInner() {
 
   // A hora local e os dados do navegador só existem no cliente. Renderizar
   // uma moldura estável até a leitura evita texto diferente entre SSR e React.
-  if (!hydrated || authLoading) {
+  if (!hydrated) {
     return (
       <main className="grid min-h-screen place-items-center bg-black text-white">
         <div className="flex items-center gap-3 text-sm text-white/60">
@@ -344,11 +327,6 @@ function MercuryWebAppInner() {
         </div>
       </main>
     );
-  }
-
-  // Portão de login: o acesso ao app exige conta Google (mesma do app Flutter).
-  if (!user) {
-    return <LoginGate />;
   }
 
   let screen = (
@@ -444,7 +422,6 @@ function MercuryWebAppInner() {
             </div>
           </div>
           <div className="ml-3 flex shrink-0 items-center gap-2">
-            <AccountControl currentName={data.name} />
             <button
               type="button"
               onClick={openSettings}
@@ -544,7 +521,6 @@ function MercuryWebAppInner() {
 
       <footer className="relative hidden border-t border-white/[0.07] px-5 py-7 text-center text-xs text-white/38 lg:block">
         <div className="flex flex-col items-center gap-2">
-          <CloudCheck syncState={syncState} />
           <span>Mercury Habit Tracker · seus dados ficam salvos neste navegador</span>
         </div>
       </footer>
